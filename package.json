@@ -1,0 +1,30 @@
+{
+  "name": "ai-career-roadmap",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI 기반 커리어 로드맵 및 포트폴리오 관리 서비스 — 백엔드 + 웹 + 모바일 모노레포",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "concurrently -n backend,web,worker -c blue,green,yellow \"pnpm --filter backend dev\" \"pnpm --filter frontend-web dev\" \"pnpm --filter backend worker:dev\"",
+    "build": "pnpm -r --filter=!frontend-mobile build && pnpm --filter frontend-mobile build",
+    "lint": "eslint . --ext .ts,.tsx,.vue",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "gen:types": "pnpm --filter @ai-career/shared-types gen",
+    "migrate:up": "pnpm --filter backend migrate:up",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "eslint": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint-plugin-vue": "^9.30.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.0"
+  }
+}

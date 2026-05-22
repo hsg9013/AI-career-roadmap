@@ -1,0 +1,6 @@
+packages:
+  - 'backend'
+  - 'frontend-web'
+  - 'frontend-mobile'
+  - 'frontend-shared'
+  - 'shared/types'

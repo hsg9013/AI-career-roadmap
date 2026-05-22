@@ -1,0 +1,132 @@
+# 프로젝트 표준: 운영 도메인 p16.sumzip.com, 웹 9516, API 9536
+stages:
+  - lint
+  - test
+  - build
+  - mobile_build
+  - image
+  - deploy
+
+variables:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+
+default:
+  image: node:20-alpine
+  cache:
+    key:
+      files:
+        - pnpm-lock.yaml
+    paths:
+      - .pnpm-store/
+
+before_script:
+  - corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+  - pnpm config set store-dir .pnpm-store
+  - pnpm install --frozen-lockfile
+
+lint:
+  stage: lint
+  script:
+    - pnpm lint
+    - pnpm format:check
+
+test:
+  stage: test
+  services:
+    - name: mariadb:10.11
+      alias: mariadb
+    - name: redis:7-alpine
+      alias: redis
+  variables:
+    MARIADB_ROOT_PASSWORD: rootpassword
+    MARIADB_DATABASE: pioneer16
+    MARIADB_USER: pioneer16
+    MARIADB_PASSWORD: pioneer26
+    DB_HOST: mariadb
+    REDIS_URL: redis://redis:6379
+  script:
+    - pnpm --filter backend migrate:up || true
+    - pnpm test
+
+build:
+  stage: build
+  script:
+    - pnpm --filter @ai-career/shared-types gen
+    - pnpm build
+  artifacts:
+    paths:
+      - backend/dist
+      - frontend-web/dist
+      - frontend-mobile/dist
+    expire_in: 1 week
+
+mobile_build_android:
+  stage: mobile_build
+  image: cimg/android:2024.04-node
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - when: manual
+  script:
+    - corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+    - pnpm install --frozen-lockfile
+    - pnpm --filter frontend-mobile build
+    - pnpm --filter frontend-mobile exec npx cap sync android
+    - cd frontend-mobile/android && ./gradlew bundleRelease
+  artifacts:
+    paths:
+      - frontend-mobile/android/app/build/outputs/bundle/release/*.aab
+    expire_in: 1 month
+
+mobile_build_ios:
+  stage: mobile_build
+  tags: [macos]   # 자체 Mac runner 또는 GitLab Cloud macOS
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - when: manual
+  script:
+    - corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+    - pnpm install --frozen-lockfile
+    - pnpm --filter frontend-mobile build
+    - pnpm --filter frontend-mobile exec npx cap sync ios
+    - cd frontend-mobile/ios/App
+    - pod install
+    - xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath build/App.xcarchive archive
+  artifacts:
+    paths:
+      - frontend-mobile/ios/App/build/App.xcarchive
+    expire_in: 1 month
+
+image_backend:
+  stage: image
+  image: docker:24-cli
+  services:
+    - docker:24-dind
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(main|staging)$/
+  script:
+    - docker build -f infra/docker/backend.Dockerfile -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA .
+    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
+
+image_frontend_web:
+  stage: image
+  image: docker:24-cli
+  services:
+    - docker:24-dind
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(main|staging)$/
+  script:
+    - docker build -f infra/docker/frontend-web.Dockerfile -t $CI_REGISTRY_IMAGE/frontend-web:$CI_COMMIT_SHORT_SHA .
+    - docker push $CI_REGISTRY_IMAGE/frontend-web:$CI_COMMIT_SHORT_SHA
+
+deploy_prod:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  environment:
+    name: production
+    url: https://p16.sumzip.com
+  script:
+    # 운영 서버에서 docker compose pull/up 실행
+    - echo "Trigger production deployment for p16.sumzip.com"
+    # SSH·deployment 스크립트는 운영팀 표준 절차로 채울 것

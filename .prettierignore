@@ -1,0 +1,8 @@
+node_modules/
+dist/
+build/
+coverage/
+pnpm-lock.yaml
+frontend-mobile/ios/
+frontend-mobile/android/
+*.min.js
