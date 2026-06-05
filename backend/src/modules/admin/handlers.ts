@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { listReports, resolveReport, metrics } from '../../services/admin.js';
+import { listReports, resolveReport, metrics, usageBreakdown } from '../../services/admin.js';
 import { HttpError } from '../../middlewares/errorHandler.js';
 
 // T062: 운영자 핸들러 (role=admin)
@@ -42,6 +42,14 @@ export async function resolveHandler(req: Request, res: Response, next: NextFunc
 export async function metricsHandler(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     res.status(200).json(await metrics());
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function usageHandler(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    res.status(200).json(await usageBreakdown());
   } catch (err) {
     next(err);
   }

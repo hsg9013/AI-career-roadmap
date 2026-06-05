@@ -13,6 +13,7 @@
     "migrate:status": "tsx src/db/migrate.ts status",
     "retention:run": "tsx scripts/retention.ts",
     "seed:usage": "tsx scripts/seed-usage.ts",
+    "seed:admin": "tsx scripts/seed-admin.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

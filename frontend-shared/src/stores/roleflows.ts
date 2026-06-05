@@ -65,6 +65,34 @@ export const useCompaniesStore = defineStore('companies', () => {
   return { candidates, loading, lastError, search };
 });
 
+// 관리자 사용 지표 (대시보드 차트)
+export interface UsageBucket { key: string; count: number }
+export interface UsageBreakdown {
+  byType: UsageBucket[];
+  byPeriod: UsageBucket[];
+  byUser: UsageBucket[];
+  total: number;
+}
+export const useAdminStore = defineStore('admin', () => {
+  const usage = ref<UsageBreakdown | null>(null);
+  const loading = ref(false);
+  const lastError = ref<string | null>(null);
+  async function fetchUsage(): Promise<void> {
+    loading.value = true;
+    lastError.value = null;
+    try {
+      const { data } = await getApi().get<UsageBreakdown>('/admin/usage');
+      usage.value = data;
+    } catch (e) {
+      lastError.value = err(e);
+      throw e;
+    } finally {
+      loading.value = false;
+    }
+  }
+  return { usage, loading, lastError, fetchUsage };
+});
+
 // US8 결제·정산
 export const usePaymentsStore = defineStore('payments', () => {
   const result = ref<unknown | null>(null);

@@ -31,6 +31,37 @@ export async function resolveReport(
   }
 }
 
+// 대시보드 차트용 사용 데이터 집계 — 서비스유형별 / 기간(월)별 / 사용자별
+export async function usageBreakdown(): Promise<{
+  byType: Array<{ key: string; count: number }>;
+  byPeriod: Array<{ key: string; count: number }>;
+  byUser: Array<{ key: string; count: number }>;
+  total: number;
+}> {
+  const pool = getPool();
+  const [typeRows] = await pool.query(
+    `SELECT event AS k, COUNT(*) AS n FROM analytics_events GROUP BY event ORDER BY n DESC, event ASC`,
+  );
+  const [periodRows] = await pool.query(
+    `SELECT DATE_FORMAT(occurred_at, '%Y-%m') AS k, COUNT(*) AS n
+     FROM analytics_events GROUP BY k ORDER BY k ASC`,
+  );
+  const [userRows] = await pool.query(
+    `SELECT CAST(user_id AS CHAR) AS k, COUNT(*) AS n
+     FROM analytics_events WHERE user_id IS NOT NULL
+     GROUP BY user_id ORDER BY n DESC, user_id ASC LIMIT 20`,
+  );
+  const [totRows] = await pool.query('SELECT COUNT(*) AS n FROM analytics_events');
+  const map = (rows: unknown) =>
+    (rows as Array<{ k: string; n: number | string }>).map((r) => ({ key: r.k, count: Number(r.n) }));
+  return {
+    byType: map(typeRows),
+    byPeriod: map(periodRows),
+    byUser: map(userRows),
+    total: Number((totRows as Array<{ n: number | string }>)[0]?.n ?? 0),
+  };
+}
+
 // 운영 대시보드 지표: 이벤트 카운트 + 기본 도메인 카운트
 export async function metrics(): Promise<Record<string, unknown>> {
   const pool = getPool();

@@ -7,6 +7,7 @@ const auth = useAuthStore();
 // 역할별 네비게이션 메뉴 (인증 사용자에게 표시)
 const links = computed(() => {
   const role = auth.user?.role;
+  if (role === 'admin') return [{ to: '/admin', label: '관리자 대시보드' }];
   if (role === 'university') return [{ to: '/university', label: '대학 대시보드' }];
   if (role === 'enterprise') return [{ to: '/company', label: '인재 검색' }];
   return [
