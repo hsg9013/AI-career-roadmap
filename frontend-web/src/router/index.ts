@@ -19,6 +19,30 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../pages/Dashboard.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/roadmap',
+    name: 'roadmap',
+    component: () => import('../pages/Roadmap.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/documents',
+    name: 'documents',
+    component: () => import('../pages/Documents.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/missions',
+    name: 'missions',
+    component: () => import('../pages/Missions.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/notifications',
+    name: 'notifications',
+    component: () => import('../pages/Notifications.vue'),
+    meta: { requiresAuth: true },
+  },
 ];
 
 export const router = createRouter({

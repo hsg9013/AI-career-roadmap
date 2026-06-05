@@ -11,6 +11,17 @@ import authRouter from './modules/auth/router.js';
 import studentsRouter from './modules/students/router.js';
 import activitiesRouter from './modules/activities/router.js';
 import gapDiagnosisRouter from './modules/gap-diagnosis/router.js';
+import roadmapRouter from './modules/roadmap/router.js';
+import documentsRouter from './modules/documents/router.js';
+import { missionsRouter, submissionsRouter } from './modules/missions/router.js';
+import notificationsRouter from './modules/notifications/router.js';
+import universityRouter from './modules/university/router.js';
+import { companiesRouter, matchConsentRouter } from './modules/companies/router.js';
+import paymentsRouter from './modules/payments/router.js';
+import alumniRouter from './modules/alumni/router.js';
+import jobPostingsRouter from './modules/jobpostings/router.js';
+import adminRouter from './modules/admin/router.js';
+import consentRouter from './modules/consent/router.js';
 
 // T035: 모든 미들웨어·라우터 와이어링
 
@@ -61,9 +72,22 @@ export function createApp(): Express {
   // v1 API — 인증 영역은 별도 rate-limit 적용
   const v1 = express.Router();
   v1.use('/auth', rateLimit({ windowSeconds: 60, max: 30, keyPrefix: 'rl:auth' }), authRouter);
+  v1.use('/students/me/match-consent', matchConsentRouter);
   v1.use('/students', studentsRouter);
   v1.use('/activities', activitiesRouter);
   v1.use('/gap-diagnosis', gapDiagnosisRouter);
+  v1.use('/roadmap', roadmapRouter);
+  v1.use('/documents', documentsRouter);
+  v1.use('/missions', missionsRouter);
+  v1.use('/submissions', submissionsRouter);
+  v1.use('/notifications', notificationsRouter);
+  v1.use('/university', universityRouter);
+  v1.use('/companies', companiesRouter);
+  v1.use('/payments', paymentsRouter);
+  v1.use('/alumni', alumniRouter);
+  v1.use('/job-postings', jobPostingsRouter);
+  v1.use('/admin', adminRouter);
+  v1.use('/consent', consentRouter);
   app.use('/v1', v1);
 
   // 404 → 통합 에러 핸들러
