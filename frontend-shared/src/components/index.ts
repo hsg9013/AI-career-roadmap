@@ -1,2 +1,3 @@
-// Phase 2/3에서 도메인 컴포넌트 export
-export {};
+export { default as StudentProfileForm } from './StudentProfileForm.vue';
+export { default as TargetJobPicker } from './TargetJobPicker.vue';
+export { default as GapDiagnosisChart } from './GapDiagnosisChart.vue';

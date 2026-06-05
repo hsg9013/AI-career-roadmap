@@ -1,1 +1,1 @@
-export {};
+export { requireAuthGuard } from './useAuthGuard.js';

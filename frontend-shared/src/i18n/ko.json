@@ -1,0 +1,39 @@
+{
+  "app": {
+    "title": "AI 커리어 로드맵",
+    "tagline": "데이터 기반 커리어 설계 + 포트폴리오 관리"
+  },
+  "common": {
+    "loading": "불러오는 중…",
+    "error": "오류가 발생했습니다",
+    "retry": "다시 시도",
+    "save": "저장",
+    "cancel": "취소",
+    "confirm": "확인",
+    "delete": "삭제"
+  },
+  "auth": {
+    "login": "로그인",
+    "logout": "로그아웃",
+    "register": "회원가입",
+    "email": "이메일",
+    "password": "비밀번호",
+    "schoolEmail": ".ac.kr 학교 이메일",
+    "loginFailed": "이메일 또는 비밀번호가 올바르지 않습니다"
+  },
+  "nav": {
+    "dashboard": "대시보드",
+    "roadmap": "로드맵",
+    "documents": "문서",
+    "missions": "미션",
+    "notifications": "알림",
+    "mypage": "마이페이지"
+  },
+  "consent": {
+    "service_use": "서비스 이용",
+    "university_share": "대학 공유",
+    "enterprise_share": "기업 공유",
+    "anonymous_dataset": "익명 데이터셋 활용",
+    "marketing": "마케팅 알림"
+  }
+}

@@ -109,19 +109,19 @@ description: "Task list for 001-ai-career-roadmap implementation — regenerated
 
 ### Implementation for US1
 
-- [ ] T044 [P] [US1] `backend/src/db/migrations/V004__init_target_jobs_activities.sql`: `target_jobs`(학생당 max 3, FR-009), `activities`, `activity_tags`, `job_requirements` 테이블
-- [ ] T045 [P] [US1] `backend/src/db/migrations/V005__init_gap_diagnoses.sql`: `gap_diagnoses` 테이블
-- [ ] T046 [US1] `backend/src/modules/auth/handlers.ts`: 회원가입·로그인·refresh·logout 본 구현(bcrypt 12, 5회 실패 잠금, refresh 회전). `backend/src/modules/auth/handlers.test.ts`(스코프 발급 회귀 방지 단위 테스트)
-- [ ] T047 [US1] `backend/src/modules/students/handlers.ts`: `GET/PUT /students/me`, `PUT /students/me/target-jobs`(중복·최대 3개 검증). 의존: T046
-- [ ] T048 [P] [US1] `backend/src/modules/activities/handlers.ts`: `POST/PATCH/DELETE /activities` + `GET /activities` (페이징·필터). 자동 태깅은 비동기 큐(`recommendation-precompute`)로 위임
-- [ ] T049 [US1] `backend/src/services/gapDiagnosis.ts`: 직무 요구 역량 ↔ 학생 보유 역량(활동·자격·교육) 매칭 알고리즘 — 보유 점수·우선순위 산출. 결과를 `gap_diagnoses`에 스냅샷 저장
-- [ ] T050 [US1] `backend/src/modules/gap-diagnosis/handlers.ts`: `POST /gap-diagnosis`, `GET /gap-diagnosis/latest`. 의존: T047, T048, T049
-- [ ] T051 [P] [US1] `backend/src/services/recommendation/gateway.ts`: 외부 LLM Gateway 인터페이스 (R-1) — anonymizer 거친 입력만 전달, Redis 캐시(TTL 24h), 외부 장애 시 룰 기반 fallback. US1에서는 갭 진단 부가 분석에 한해 호출
-- [ ] T052 [P] [US1] `frontend-shared/src/stores/student.ts`: Pinia 스토어 — 프로필·목표 직무·갭 진단 결과 상태
-- [ ] T053 [P] [US1] `frontend-shared/src/components/StudentProfileForm.vue`: 프로필 입력 폼 (web/mobile 공유)
-- [ ] T054 [P] [US1] `frontend-shared/src/components/TargetJobPicker.vue`: 산업 코드 + 직무 코드 선택(최대 3)
-- [ ] T055 [P] [US1] `frontend-shared/src/components/GapDiagnosisChart.vue`: 보유/부족 역량 차트
-- [ ] T056 [US1] `frontend-web/src/pages/Onboarding.vue` + `Dashboard.vue`: 회원가입 후 온보딩 페이지 + 대시보드에 갭 진단 결과 표시. 의존: T053, T054, T055
+- [x] T044 [P] [US1] `backend/src/db/migrations/V004__init_target_jobs_activities.sql`: `target_jobs`(학생당 max 3, FR-009), `activities`, `activity_tags`, `job_requirements` 테이블
+- [x] T045 [P] [US1] `backend/src/db/migrations/V005__init_gap_diagnoses.sql`: `gap_diagnoses` 테이블
+- [x] T046 [US1] `backend/src/modules/auth/handlers.ts`: 회원가입·로그인·refresh·logout 본 구현(bcrypt 12, 5회 실패 잠금, refresh 회전). `backend/src/modules/auth/handlers.test.ts`(스코프 발급 회귀 방지 단위 테스트)
+- [x] T047 [US1] `backend/src/modules/students/handlers.ts`: `GET/PUT /students/me`, `PUT /students/me/target-jobs`(중복·최대 3개 검증). 의존: T046
+- [x] T048 [P] [US1] `backend/src/modules/activities/handlers.ts`: `POST/PATCH/DELETE /activities` + `GET /activities` (페이징·필터). 자동 태깅은 비동기 큐(`recommendation-precompute`)로 위임
+- [x] T049 [US1] `backend/src/services/gapDiagnosis.ts`: 직무 요구 역량 ↔ 학생 보유 역량(활동·자격·교육) 매칭 알고리즘 — 보유 점수·우선순위 산출. 결과를 `gap_diagnoses`에 스냅샷 저장
+- [x] T050 [US1] `backend/src/modules/gap-diagnosis/handlers.ts`: `POST /gap-diagnosis`, `GET /gap-diagnosis/latest`. 의존: T047, T048, T049
+- [x] T051 [P] [US1] `backend/src/services/recommendation/gateway.ts`: 외부 LLM Gateway 인터페이스 (R-1) — anonymizer 거친 입력만 전달, Redis 캐시(TTL 24h), 외부 장애 시 룰 기반 fallback. US1에서는 갭 진단 부가 분석에 한해 호출
+- [x] T052 [P] [US1] `frontend-shared/src/stores/student.ts`: Pinia 스토어 — 프로필·목표 직무·갭 진단 결과 상태
+- [x] T053 [P] [US1] `frontend-shared/src/components/StudentProfileForm.vue`: 프로필 입력 폼 (web/mobile 공유)
+- [x] T054 [P] [US1] `frontend-shared/src/components/TargetJobPicker.vue`: 산업 코드 + 직무 코드 선택(최대 3)
+- [x] T055 [P] [US1] `frontend-shared/src/components/GapDiagnosisChart.vue`: 보유/부족 역량 차트
+- [x] T056 [US1] `frontend-web/src/pages/Onboarding.vue` + `Dashboard.vue`: 회원가입 후 온보딩 페이지 + 대시보드에 갭 진단 결과 표시. 의존: T053, T054, T055
 - [ ] T057 [US1] `frontend-mobile/src/pages/Onboarding.vue` + `Dashboard.vue` (R-6): `IonPage` 래핑, 모바일 키보드 UX 최적화. frontend-shared 컴포넌트 재사용. 의존: T053, T054, T055
 - [ ] T058 [US1] `frontend-web/src/router/index.ts` + `frontend-mobile/src/router/index.ts`에 `/onboarding`, `/dashboard` 라우트 등록
 - [ ] T059 [P] [US1] `backend/src/modules/students/handlers.test.ts`: target_jobs 최대 3 검증 단위 테스트
