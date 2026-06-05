@@ -11,7 +11,8 @@
     "cap:ios": "npx cap run ios",
     "cap:android": "npx cap run android",
     "cap:open:ios": "npx cap open ios",
-    "cap:open:android": "npx cap open android"
+    "cap:open:android": "npx cap open android",
+    "e2e": "maestro test .maestro/smoke.yaml"
   },
   "dependencies": {
     "vue": "^3.4.0",

@@ -41,6 +41,30 @@ const routes = [
         component: () => import('../pages/Notifications.vue'),
         meta: { requiresAuth: true },
     },
+    {
+        path: '/membership',
+        name: 'membership',
+        component: () => import('../pages/Membership.vue'),
+        meta: { requiresAuth: true },
+    },
+    {
+        path: '/donate',
+        name: 'donate',
+        component: () => import('../pages/AlumniDonate.vue'),
+        meta: { requiresAuth: true },
+    },
+    {
+        path: '/university',
+        name: 'university',
+        component: () => import('../pages/University.vue'),
+        meta: { requiresAuth: true },
+    },
+    {
+        path: '/company',
+        name: 'company',
+        component: () => import('../pages/Company.vue'),
+        meta: { requiresAuth: true },
+    },
 ];
 export const router = createRouter({
     history: createWebHistory(),

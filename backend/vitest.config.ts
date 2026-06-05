@@ -8,5 +8,7 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 15000,
     hookTimeout: 15000,
+    // 테스트 파일 순차 실행 — 공유 MariaDB(멀티유저 박스) 커넥션 고갈 + 풀 종료 레이스 방지.
+    fileParallelism: false,
   },
 });

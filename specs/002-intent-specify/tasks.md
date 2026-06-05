@@ -73,7 +73,7 @@ description: "Task list for AI 기반 진로·취업 로드맵 플랫폼 (002-in
 - [X] T020 [P] [US1] 웹: 프로필 입력 화면 in `frontend-shared/` + `frontend-web/`
 - [X] T021 [P] [US1] 웹: 진단 결과 시각화 화면
 - [X] T022 [US1] 역량 갱신 시 재진단(이력 보존) 연동 — depends T018
-- [ ] T074 [P] [US1] 온보딩 흐름 최적화 — 가입→프로필 입력→첫 진단까지 단계 축약 위저드(진행률 표시·필수항목 우선) in `frontend-shared/` (SC-001 첫 진단 15분 이내 달성 지원) — depends T020,T021
+- [X] T074 [P] [US1] 온보딩 흐름 최적화 — 가입→프로필 입력→첫 진단까지 단계 축약 위저드(진행률 표시·필수항목 우선) in `frontend-shared/` (SC-001 첫 진단 15분 이내 달성 지원) — depends T020,T021
 
 **Checkpoint**: US1 단독 기능·테스트 가능 (MVP 데모)
 
@@ -156,7 +156,7 @@ description: "Task list for AI 기반 진로·취업 로드맵 플랫폼 (002-in
 - [X] T044 [P] [US6] `universities` + `university_staff` 마이그레이션/모델 in `backend/src/modules/university/` (§10)
 - [X] T045 [US6] 대학 조회 서비스 — 동의범위 서버측 강제 필터(stats vs individual) (FR-014, R-4) — depends T011,T044
 - [X] T046 [US6] `GET /university/students` 엔드포인트(범위 차등) — depends T045
-- [ ] T047 [P] [US6] 웹: 대학 대시보드(집계/개인 모드)
+- [X] T047 [P] [US6] 웹: 대학 대시보드(집계/개인 모드)
 
 **Checkpoint**: US1~US6 독립 동작
 
@@ -171,7 +171,7 @@ description: "Task list for AI 기반 진로·취업 로드맵 플랫폼 (002-in
 - [X] T048 [P] [US7] `companies` + `job_match_consents` 마이그레이션/모델 in `backend/src/modules/companies/` (§11)
 - [X] T049 [US7] 후보 검색 서비스(요건 매칭 + 미동의 제외) (FR-015) — depends T048
 - [X] T050 [US7] `GET /companies/candidates` 엔드포인트 — depends T049
-- [ ] T051 [P] [US7] 웹: 기업 후보 검색 화면
+- [X] T051 [P] [US7] 웹: 기업 후보 검색 화면
 
 **Checkpoint**: US1~US7 독립 동작
 
@@ -190,7 +190,7 @@ description: "Task list for AI 기반 진로·취업 로드맵 플랫폼 (002-in
 - [X] T054 [US8] PortOne 빌링 연동 + 결제 서비스 → 멤버십 권한 활성 (FR-016, R-5) — depends T053
 - [X] T055 [US8] 멘토 정산 서비스(정액/수수료) + PortOne Payouts (FR-017, R-5) — depends T052,T006
 - [X] T056 [US8] `POST /payments/checkout`(실패 402) + `GET /payments/mentor-payouts` 엔드포인트 — depends T054,T055
-- [ ] T057 [P] [US8] 웹: 멤버십 결제 + 멘토 정산 화면
+- [X] T057 [P] [US8] 웹: 멤버십 결제 + 멘토 정산 화면
 
 **Checkpoint**: US1~US8 독립 동작
 
@@ -205,7 +205,7 @@ description: "Task list for AI 기반 진로·취업 로드맵 플랫폼 (002-in
 - [X] T058 [P] [US9] `alumni_rewards` 마이그레이션/모델 in `backend/src/modules/alumni/` (§16)
 - [X] T059 [US9] 기부 서비스: 쓰기 시 익명화(PII strip) + 보상 지급 (FR-018, R-3) — depends T023,T006,T058
 - [X] T060 [US9] `POST /alumni/paths` 엔드포인트 — depends T059
-- [ ] T061 [P] [US9] 웹: 선배 기부 + 보상 화면
+- [X] T061 [P] [US9] 웹: 선배 기부 + 보상 화면
 
 **Checkpoint**: 전체 US1~US9 독립 동작
 
@@ -217,13 +217,13 @@ description: "Task list for AI 기반 진로·취업 로드맵 플랫폼 (002-in
 
 - [X] T062 [P] 운영자 검수 모듈(미션·공고·신고) in `backend/src/modules/admin/` (FR-023)
 - [X] T063 [P] 외부 채용 공고 수집기 + 신선도(fresh/stale) in `backend/src/modules/jobpostings/` (FR-024)
-- [ ] T064 [P] 보존기간 경과 자동 익명화/삭제 배치 잡 (FR-022) — `retention_jobs` 소비
-- [ ] T065 일일 백업 + 24h 복구 런북 + `/healthz`·`/readyz` 모니터링 (SC-012, R-7)
-- [ ] T066 성능 패스: 로드맵 p95<2s, 조회 p95<200ms, Redis 캐싱 (SC-011)
-- [ ] T067 [P] 모바일 E2E 자동화(Detox/Maestro) 도입 — plan.md상 P3 시점
-- [ ] T068 [P] 테스트 스위트: openapi 계약 테스트 + 스토리별 통합 테스트 (Vitest/Supertest/Playwright)
-- [ ] T069 보안 하드닝: AES-GCM 적용 범위·k-익명성 강제·비밀 분리 감사 (FR-007/019/020/025)
-- [ ] T070 quickstart.md 엔드투엔드 검증
+- [X] T064 [P] 보존기간 경과 자동 익명화/삭제 배치 잡 (FR-022) — `retention_jobs` 소비
+- [X] T065 일일 백업 + 24h 복구 런북 + `/healthz`·`/readyz` 모니터링 (SC-012, R-7)
+- [X] T066 성능 패스: 로드맵 p95<2s, 조회 p95<200ms, Redis 캐싱 (SC-011)
+- [X] T067 [P] 모바일 E2E 자동화(Detox/Maestro) 도입 — plan.md상 P3 시점
+- [X] T068 [P] 테스트 스위트: openapi 계약 테스트 + 스토리별 통합 테스트 (Vitest/Supertest/Playwright)
+- [X] T069 보안 하드닝: AES-GCM 적용 범위·k-익명성 강제·비밀 분리 감사 (FR-007/019/020/025)
+- [X] T070 quickstart.md 엔드투엔드 검증
 - [X] T072 [P] 제품 이벤트 트래킹·지표 집계 인프라 — 핵심 행동 이벤트 정의·수집(가입, 첫 진단, 7일 내 3대 행동, 로드맵 완료, 추천 거부, 포트폴리오 활용, 90일 결제 전환, 멤버십 해지, 학기말 재방문) + 지표 집계 뷰/대시보드 연계 in `backend/src/lib/analytics.ts` & `backend/src/modules/admin/metrics.ts` (SC-002~SC-010) — depends T010,T062
 
 ---

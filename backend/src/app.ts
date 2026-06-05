@@ -7,6 +7,7 @@ import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 import { rateLimit } from './middlewares/rateLimit.js';
+import { checkReadiness } from './lib/health.js';
 import authRouter from './modules/auth/router.js';
 import studentsRouter from './modules/students/router.js';
 import activitiesRouter from './modules/activities/router.js';
@@ -64,9 +65,11 @@ export function createApp(): Express {
     res.json({ status: 'ok' });
   });
 
-  // readyz — DB·Redis·S3·LLM ping (Phase 3+ 보강)
+  // readyz — DB·Redis 실제 ping + S3·LLM 설정 판정 (T065)
   app.get('/readyz', (_req, res) => {
-    res.json({ status: 'ok', deps: { db: 'pending', redis: 'pending', s3: 'pending', llm: 'pending' } });
+    void checkReadiness()
+      .then((report) => res.status(report.status === 'ok' ? 200 : 503).json(report))
+      .catch(() => res.status(503).json({ status: 'degraded', deps: { db: 'down', redis: 'down', s3: 'unknown', llm: 'unknown' } }));
   });
 
   // v1 API — 인증 영역은 별도 rate-limit 적용

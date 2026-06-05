@@ -23,6 +23,11 @@ export interface RateLimitOptions {
 export function rateLimit(opts: RateLimitOptions) {
   const prefix = opts.keyPrefix ?? 'rl';
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+    // 테스트 환경에서는 IP rate-limit 우회 — 인프로세스 테스트가 공유 Redis 카운터를 오염시키는 문제 방지.
+    if (env.NODE_ENV === 'test') {
+      next();
+      return;
+    }
     try {
       const key = `${prefix}:${opts.keyFn ? opts.keyFn(req) : (req.auth?.sub ?? req.ip ?? 'anon')}`;
       const r = getRedis();

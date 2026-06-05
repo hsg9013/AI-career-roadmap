@@ -1,0 +1,24 @@
+# T067: 모바일 E2E 스모크 (Maestro) — 로그인 → 대시보드 → 로드맵 진입.
+# 실행: maestro test .maestro/smoke.yaml  (iOS 시뮬레이터/안드로이드 에뮬레이터 + 앱 설치 전제)
+appId: com.sumzip.p16
+---
+- launchApp:
+    clearState: true
+- assertVisible: "로그인"
+- tapOn:
+    id: "email"
+- inputText: "demo-student@uni.ac.kr"
+- tapOn:
+    id: "password"
+- inputText: "demo-strong-4"
+- tapOn: "로그인"
+# 로그인 후 대시보드 또는 온보딩 진입
+- assertVisible:
+    text: "대시보드|온보딩"
+    optional: false
+# 로드맵 화면 진입 스모크
+- openLink: "p16app://roadmap"
+    optional: true
+- assertVisible:
+    text: "합격 로드맵"
+    optional: true

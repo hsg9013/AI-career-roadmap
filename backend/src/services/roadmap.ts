@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { PoolConnection } from 'mysql2/promise';
 import { getPool, withTransaction } from '../db/pool.js';
 import { HttpError } from '../middlewares/errorHandler.js';
+import { cached, invalidate } from '../lib/cache.js';
 import {
   cohortCount,
   cohortKey,
@@ -259,7 +260,7 @@ function finalize(items: RoadmapItem[]): RoadmapItem[] {
 }
 
 export async function generateRoadmap(userId: number, targetJobId: number): Promise<Roadmap> {
-  return withTransaction(async (conn) => {
+  const result = await withTransaction(async (conn) => {
     const tj = await loadTargetJob(conn, userId, targetJobId);
     const gradeBand = gradeBandFor(tj.year_in_school);
     const gap = await loadGapSkills(conn, tj.student_id, tj.id);
@@ -326,7 +327,7 @@ export async function generateRoadmap(userId: number, targetJobId: number): Prom
     return {
       id: roadmapId,
       target_job_id: tj.id,
-      status: 'active',
+      status: 'active' as const,
       source,
       cohort_key: usedKey,
       cohort_size: cohortSize,
@@ -336,6 +337,8 @@ export async function generateRoadmap(userId: number, targetJobId: number): Prom
       items,
     };
   });
+  await invalidate(latestCacheKey(userId, targetJobId));
+  return result;
 }
 
 // FR-006: 추천 거부 — 항목 상태 변경 + 거부 이력 기록(다음 생성에서 제외·하향)
@@ -344,9 +347,9 @@ export async function rejectItem(
   itemId: number,
   reason?: string,
 ): Promise<void> {
-  await withTransaction(async (conn) => {
+  const targetJobId = await withTransaction(async (conn) => {
     const [rows] = await conn.query(
-      `SELECT ri.id, ri.item_ref, ri.target_skill, r.student_id
+      `SELECT ri.id, ri.item_ref, ri.target_skill, r.student_id, r.target_job_id
        FROM roadmap_items ri
        JOIN roadmaps r ON r.id = ri.roadmap_id
        JOIN students s ON s.id = r.student_id
@@ -354,7 +357,7 @@ export async function rejectItem(
        LIMIT 1`,
       [itemId, userId],
     );
-    const row = (rows as Array<{ id: number; item_ref: string; target_skill: string | null; student_id: number }>)[0];
+    const row = (rows as Array<{ id: number; item_ref: string; target_skill: string | null; student_id: number; target_job_id: number }>)[0];
     if (!row) throw new HttpError(404, 'ROADMAP_ITEM_NOT_FOUND', 'Roadmap item not found for this user');
 
     await conn.query(`UPDATE roadmap_items SET status = 'rejected' WHERE id = ?`, [itemId]);
@@ -364,10 +367,21 @@ export async function rejectItem(
        ON DUPLICATE KEY UPDATE reason = VALUES(reason), rejected_at = CURRENT_TIMESTAMP`,
       [row.student_id, row.item_ref, row.target_skill, reason ?? null],
     );
+    return row.target_job_id;
   });
+  await invalidate(latestCacheKey(userId, targetJobId));
+}
+
+function latestCacheKey(userId: number, targetJobId: number): string {
+  return `roadmap:latest:${userId}:${targetJobId}`;
 }
 
 export async function getLatestRoadmap(userId: number, targetJobId: number): Promise<Roadmap | null> {
+  // T066: 60초 조회 캐시. 생성/거부 시 무효화.
+  return cached(latestCacheKey(userId, targetJobId), 60, () => loadLatestRoadmap(userId, targetJobId));
+}
+
+async function loadLatestRoadmap(userId: number, targetJobId: number): Promise<Roadmap | null> {
   const pool = getPool();
   const conn = await pool.getConnection();
   try {

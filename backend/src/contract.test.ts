@@ -1,0 +1,48 @@
+import { describe, it, expect, beforeAll } from 'vitest';
+import request from 'supertest';
+import type { Express } from 'express';
+import { createApp } from './app.js';
+
+// T068: 계약 테스트 — contracts/openapi.yaml 의 엔드포인트가 실제로 마운트되어 있는지 검증.
+// 인증 없이 호출 시 보호 라우트는 401(또는 검증 422)을 반환해야 하며 404(미마운트)는 실패로 간주.
+
+interface ContractRoute {
+  method: 'get' | 'post' | 'put';
+  path: string;
+  public?: boolean;
+}
+
+// openapi.yaml 의 paths 에 대응 (path 파라미터는 더미 1 로 치환)
+const ROUTES: ContractRoute[] = [
+  { method: 'post', path: '/v1/auth/login', public: true },
+  { method: 'put', path: '/v1/students/me' },
+  { method: 'post', path: '/v1/gap-diagnosis' },
+  { method: 'post', path: '/v1/roadmap' },
+  { method: 'post', path: '/v1/roadmap/items/1/reject' },
+  { method: 'post', path: '/v1/documents' },
+  { method: 'put', path: '/v1/documents/1' },
+  { method: 'post', path: '/v1/missions/1/submissions' },
+  { method: 'get', path: '/v1/submissions/1/feedback' },
+  { method: 'get', path: '/v1/notifications' },
+  { method: 'get', path: '/v1/university/students' },
+  { method: 'get', path: '/v1/companies/candidates' },
+  { method: 'post', path: '/v1/payments/checkout' },
+  { method: 'get', path: '/v1/payments/mentor-payouts' },
+  { method: 'post', path: '/v1/alumni/paths' },
+];
+
+let app: Express;
+beforeAll(() => {
+  app = createApp();
+});
+
+describe('T068 OpenAPI 계약 — 엔드포인트 마운트', () => {
+  it.each(ROUTES)('$method $path 가 마운트되어 있다 (404 아님)', async (route) => {
+    const res = await request(app)[route.method](route.path).send({});
+    expect(res.status).not.toBe(404);
+    if (!route.public) {
+      // 보호 라우트는 인증 없이 401
+      expect([401, 422]).toContain(res.status);
+    }
+  });
+});
