@@ -57,3 +57,6 @@ secrets/
 # Backup files
 *-backup.md
 *.bak
+
+# Runtime (local dev process pids/logs — managed by check_project.sh)
+.run/
