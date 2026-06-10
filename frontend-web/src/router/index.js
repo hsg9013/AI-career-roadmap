@@ -65,6 +65,12 @@ const routes = [
         component: () => import('../pages/Company.vue'),
         meta: { requiresAuth: true },
     },
+    {
+        path: '/admin',
+        name: 'admin',
+        component: () => import('../pages/AdminDashboard.vue'),
+        meta: { requiresAuth: true },
+    },
 ];
 export const router = createRouter({
     history: createWebHistory(),
