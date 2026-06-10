@@ -2,6 +2,8 @@ import type { PoolConnection } from 'mysql2/promise';
 import { getPool, withTransaction } from '../db/pool.js';
 import { HttpError } from '../middlewares/errorHandler.js';
 import { track } from '../lib/analytics.js';
+import { runInference, type AiSource } from './ai/infer.js';
+import { logger } from '../lib/logger.js';
 
 // T032: 활동 기록 → 이력서/자소서/포트폴리오 자동 생성 (FR-008~009, US3)
 
@@ -15,6 +17,8 @@ export interface DocumentRow {
   content: unknown;
   status: 'draft' | 'final';
   updated_at: string;
+  // 003 US1(T018/T021): 생성 경로. AI 성공 시 'ai', 무키·실패·예산초과 시 'fallback_rule'.
+  ai_source?: AiSource;
 }
 
 async function resolveStudentId(conn: PoolConnection, userId: number): Promise<number> {
@@ -94,27 +98,93 @@ function buildContent(docType: DocType, activities: ActivityRow[]): { title: str
   };
 }
 
-export async function generateDocument(userId: number, docType: DocType): Promise<DocumentRow> {
-  return withTransaction(async (conn) => {
-    const studentId = await resolveStudentId(conn, userId);
-    const activities = await loadActivities(conn, studentId);
-    const { title, content } = buildContent(docType, activities);
+// 003 US1(T018): 자기소개서 AI 생성. 활동 메타(제목·유형·성과)를 근거로 한국어 초안을 작성.
+// 문서는 학생 본인의 산출물이므로 추천 게이트웨이와 달리 익명화하지 않는다(cohort 매칭 아님).
+// 실패·무키·예산초과 시 null 을 돌려 호출부가 규칙 기반 buildContent 로 폴백한다.
+async function buildCoverLetterWithAi(
+  studentId: number,
+  activities: ActivityRow[],
+): Promise<{ title: string; content: unknown } | null> {
+  try {
+    const facts = activities.slice(0, 8).map((a) => ({
+      category: a.category,
+      title: a.title,
+      outcome: a.outcome ?? '',
+    }));
+    const system =
+      '당신은 한국 대학생의 자기소개서 작성을 돕는 코치입니다. ' +
+      '입력으로 받은 활동 목록(유형·제목·성과)만 근거로, 과장 없이 ' +
+      '{"intro": string, "highlights": string[], "closing": string} JSON 형식만 출력하세요. ' +
+      'highlights 는 활동 기반 3~4개 한국어 문장.';
+    const user = JSON.stringify({ activities: facts });
+    const res = await runInference({ feature: 'document', subjectRef: studentId, system, user });
+    if (res.source !== 'ai' || !res.text) return null;
 
-    const [verRows] = await conn.query(
+    const start = res.text.indexOf('{');
+    const end = res.text.lastIndexOf('}');
+    if (start < 0 || end <= start) return null;
+    const parsed = JSON.parse(res.text.slice(start, end + 1)) as {
+      intro?: unknown;
+      highlights?: unknown;
+      closing?: unknown;
+    };
+    const intro = typeof parsed.intro === 'string' ? parsed.intro.trim() : '';
+    if (!intro) return null;
+    const highlights = Array.isArray(parsed.highlights)
+      ? parsed.highlights.filter((s): s is string => typeof s === 'string').slice(0, 4)
+      : [];
+    const closing = typeof parsed.closing === 'string' ? parsed.closing.trim() : '';
+    return { title: '자기소개서 초안 (AI 생성)', content: { intro, highlights, closing } };
+  } catch (err) {
+    logger.warn({ err, studentId }, '[documents] AI cover letter failed — rule fallback');
+    return null;
+  }
+}
+
+export async function generateDocument(userId: number, docType: DocType): Promise<DocumentRow> {
+  // 1) 읽기(활동) — 트랜잭션 밖. 외부 AI 호출이 DB 트랜잭션을 점유하지 않도록 분리.
+  const conn = await getPool().getConnection();
+  let studentId: number;
+  let activities: ActivityRow[];
+  try {
+    studentId = await resolveStudentId(conn, userId);
+    activities = await loadActivities(conn, studentId);
+  } finally {
+    conn.release();
+  }
+
+  // 2) 콘텐츠 결정: 자기소개서는 AI 우선, 그 외/실패 시 규칙 기반.
+  let aiSource: AiSource = 'fallback_rule';
+  let built = buildContent(docType, activities); // 활동 0건이면 여기서 422
+  if (docType === 'coverletter') {
+    const ai = await buildCoverLetterWithAi(studentId, activities);
+    if (ai) {
+      built = ai;
+      aiSource = 'ai';
+    }
+  }
+  const { title, content } = built;
+
+  // 3) 쓰기 — 버전 계산 + INSERT 는 트랜잭션으로.
+  return withTransaction(async (txConn) => {
+    const [verRows] = await txConn.query(
       'SELECT COALESCE(MAX(version), 0) AS v FROM documents WHERE student_id = ? AND doc_type = ?',
       [studentId, docType],
     );
     const nextVersion = Number((verRows as Array<{ v: number | string }>)[0]!.v) + 1;
 
-    const [ins] = await conn.query(
+    const [ins] = await txConn.query(
       `INSERT INTO documents (student_id, doc_type, version, title, content_json, status)
        VALUES (?, ?, ?, ?, ?, 'draft')`,
       [studentId, docType, nextVersion, title, JSON.stringify(content)],
     );
     const id = (ins as { insertId: number }).insertId;
-    await track(userId, 'document_generated', { doc_type: docType });
+    await track(userId, 'document_generated', { doc_type: docType, ai_source: aiSource });
 
-    return { id, doc_type: docType, version: nextVersion, title, content, status: 'draft', updated_at: '' };
+    return {
+      id, doc_type: docType, version: nextVersion, title, content,
+      status: 'draft', updated_at: '', ai_source: aiSource,
+    };
   });
 }
 

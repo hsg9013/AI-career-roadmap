@@ -60,6 +60,9 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['primary']} */ ;
 /** @type {__VLS_StyleScopedClasses['tabs']} */ ;
 /** @type {__VLS_StyleScopedClasses['tabs']} */ ;
+/** @type {__VLS_StyleScopedClasses['ai-summary']} */ ;
+/** @type {__VLS_StyleScopedClasses['ai-badge']} */ ;
+/** @type {__VLS_StyleScopedClasses['ai-badge']} */ ;
 /** @type {__VLS_StyleScopedClasses['period']} */ ;
 /** @type {__VLS_StyleScopedClasses['period']} */ ;
 /** @type {__VLS_StyleScopedClasses['item']} */ ;
@@ -111,6 +114,18 @@ if (__VLS_ctx.roadmap.lastError) {
 }
 if (__VLS_ctx.current) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({});
+    if (__VLS_ctx.current.ai_summary) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+            ...{ class: "ai-summary" },
+        });
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+            ...{ class: "ai-badge" },
+            ...{ class: (__VLS_ctx.current.ai_source === 'ai' ? 'ai' : 'rule') },
+        });
+        (__VLS_ctx.current.ai_source === 'ai' ? 'AI 코칭' : '코칭 요약');
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({});
+        (__VLS_ctx.current.ai_summary);
+    }
     if (__VLS_ctx.current.notice) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
             ...{ class: "notice" },
@@ -120,7 +135,7 @@ if (__VLS_ctx.current) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
         ...{ class: "meta muted" },
     });
-    (__VLS_ctx.current.source === 'cohort' ? '코호트' : '폴백');
+    (__VLS_ctx.current.source === 'cohort' ? '선배 코호트' : '직무 요구역량 기반');
     (__VLS_ctx.current.cohort_size);
     if (__VLS_ctx.current.cohort_key) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
@@ -181,6 +196,8 @@ else if (!__VLS_ctx.roadmap.loading) {
 /** @type {__VLS_StyleScopedClasses['primary']} */ ;
 /** @type {__VLS_StyleScopedClasses['tabs']} */ ;
 /** @type {__VLS_StyleScopedClasses['error']} */ ;
+/** @type {__VLS_StyleScopedClasses['ai-summary']} */ ;
+/** @type {__VLS_StyleScopedClasses['ai-badge']} */ ;
 /** @type {__VLS_StyleScopedClasses['notice']} */ ;
 /** @type {__VLS_StyleScopedClasses['meta']} */ ;
 /** @type {__VLS_StyleScopedClasses['muted']} */ ;

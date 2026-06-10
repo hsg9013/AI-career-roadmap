@@ -27,11 +27,11 @@ function getRedis(): Redis {
   return redis;
 }
 
-function normalizeEmail(email: string): string {
+export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-function sha256(input: string): string {
+export function sha256(input: string): string {
   return createHash('sha256').update(input).digest('hex');
 }
 
@@ -159,21 +159,19 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   }
 
   await clearLockout(email);
+  return issueSession({ id: user.id, role: user.role });
+}
 
-  // 학생/멘토 이외 역할은 권한 매트릭스 의존 → US1 단계에선 학생만 발급되지만
-  // 다른 역할이 와도 buildScopes 가 안전한 기본을 돌려준다.
+// 세션 발급(access+refresh 회전 family) — 일반 로그인·소셜 로그인 공통 사용.
+export async function issueSession(user: { id: number; role: Role }): Promise<LoginResult> {
+  // 학생/멘토 이외 역할은 권한 매트릭스 의존 → buildScopes 가 안전한 기본을 돌려준다.
   const scopes = buildScopes({ role: user.role });
   const accessToken = signAccessToken({ sub: user.id, role: user.role, scopes });
 
   const familyId = randomUUID();
   const refreshToken = signRefreshToken({ sub: user.id, family: familyId });
 
-  await persistRefreshToken({
-    userId: user.id,
-    familyId,
-    token: refreshToken,
-  });
-
+  await persistRefreshToken({ userId: user.id, familyId, token: refreshToken });
   await getPool().query('UPDATE users SET last_login_at = NOW() WHERE id = ?', [user.id]);
 
   return {

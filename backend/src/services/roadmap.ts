@@ -10,6 +10,8 @@ import {
   satisfiesKAnonymity,
   K_ANONYMITY_MIN,
 } from './recommendation/kAnonymity.js';
+import { runInference, type AiSource } from './ai/infer.js';
+import { logger } from '../lib/logger.js';
 
 // T026: 선배 경로 기반 합격 로드맵 생성 (FR-005) + 거부 반영 (FR-006), k-익명성 게이트 (FR-019)
 //
@@ -48,6 +50,9 @@ export interface Roadmap {
   model_version: string;
   notice: string | null;
   items: RoadmapItem[];
+  // 003 US1(T017/T021): AI 코칭 요약 + 사용 경로. AI 실패·무키·예산초과 시 규칙 기반 요약으로 폴백.
+  ai_source: AiSource;
+  ai_summary: string;
 }
 
 interface TargetJobRow {
@@ -259,6 +264,52 @@ function finalize(items: RoadmapItem[]): RoadmapItem[] {
     .sort((a, b) => (a.period === b.period ? b.score - a.score : a.period.localeCompare(b.period)));
 }
 
+// 규칙 기반 요약 — AI 미사용/실패 시 폴백. 항목 메타만으로 결정적 문장 생성(PII 없음).
+function ruleRoadmapSummary(jobRole: string, items: RoadmapItem[], notice: string | null): string {
+  const periods = [...new Set(items.map((it) => it.period))].sort();
+  const skills = [...new Set(items.map((it) => it.target_skill).filter((s): s is string => !!s))].slice(0, 4);
+  const head = `${jobRole} 직무를 향한 ${items.length}개 활동을 ${periods.length}개 시기로 구성했습니다.`;
+  const focus = skills.length ? ` 핵심 보완 역량: ${skills.join(', ')}.` : '';
+  return head + focus + (notice ? ` ${notice}` : '');
+}
+
+// AI 코칭 요약 — 항목 제목·시기·역량 키워드만 전달(PII 제로). 실패 시 규칙 요약 폴백.
+async function buildRoadmapSummary(
+  jobRole: string,
+  roadmapId: number,
+  items: RoadmapItem[],
+  notice: string | null,
+): Promise<{ ai_source: AiSource; ai_summary: string }> {
+  const fallback = ruleRoadmapSummary(jobRole, items, notice);
+  try {
+    const safeItems = items.map((it) => ({
+      period: it.period,
+      type: it.activity_type,
+      title: it.title,
+      skill: it.target_skill,
+    }));
+    const system =
+      '당신은 한국 대학생의 취업 로드맵을 안내하는 코치입니다. ' +
+      '입력으로 받은 목표 직무와 추천 활동 목록(시기·유형·역량 키워드)만 근거로, ' +
+      '실행 동기를 부여하는 2~3문장 한국어 요약을 작성하세요. ' +
+      '반드시 {"summary": string} JSON 형식만 출력하세요.';
+    const user = JSON.stringify({ job_role: jobRole, items: safeItems, notice });
+    const res = await runInference({ feature: 'roadmap', subjectRef: roadmapId, system, user });
+    if (res.source === 'ai' && res.text) {
+      const start = res.text.indexOf('{');
+      const end = res.text.lastIndexOf('}');
+      if (start >= 0 && end > start) {
+        const parsed = JSON.parse(res.text.slice(start, end + 1)) as { summary?: unknown };
+        const summary = typeof parsed.summary === 'string' ? parsed.summary.trim() : '';
+        if (summary) return { ai_source: 'ai', ai_summary: summary };
+      }
+    }
+  } catch (err) {
+    logger.warn({ err, roadmapId }, '[roadmap] AI summary failed — rule fallback');
+  }
+  return { ai_source: 'fallback_rule', ai_summary: fallback };
+}
+
 export async function generateRoadmap(userId: number, targetJobId: number): Promise<Roadmap> {
   const result = await withTransaction(async (conn) => {
     const tj = await loadTargetJob(conn, userId, targetJobId);
@@ -335,10 +386,21 @@ export async function generateRoadmap(userId: number, targetJobId: number): Prom
       model_version: ROADMAP_MODEL_VERSION,
       notice,
       items,
+      job_role: `${tj.industry_code}/${tj.job_role_code}`,
     };
   });
+
+  // AI 코칭 요약은 트랜잭션 밖에서(외부 HTTP 호출이 DB 트랜잭션을 점유하지 않도록).
+  const { job_role, ...roadmapBase } = result;
+  const { ai_source, ai_summary } = await buildRoadmapSummary(
+    job_role,
+    result.id,
+    result.items,
+    result.notice,
+  );
+
   await invalidate(latestCacheKey(userId, targetJobId));
-  return result;
+  return { ...roadmapBase, ai_source, ai_summary };
 }
 
 // FR-006: 추천 거부 — 항목 상태 변경 + 거부 이력 기록(다음 생성에서 제외·하향)
@@ -411,6 +473,8 @@ async function loadLatestRoadmap(userId: number, targetJobId: number): Promise<R
       score: Number(it.score),
     }));
 
+    // 조회 경로는 비용·지연 회피를 위해 live AI 를 호출하지 않고 규칙 기반 요약을 제공.
+    const jobRole = `${tj.industry_code}/${tj.job_role_code}`;
     return {
       id: r.id,
       target_job_id: r.target_job_id,
@@ -422,6 +486,8 @@ async function loadLatestRoadmap(userId: number, targetJobId: number): Promise<R
       model_version: r.model_version,
       notice: null,
       items,
+      ai_source: 'fallback_rule',
+      ai_summary: ruleRoadmapSummary(jobRole, items, null),
     };
   } finally {
     conn.release();

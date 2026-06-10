@@ -3,6 +3,8 @@ import { useDocumentsStore } from 'frontend-shared';
 // US3 문서 자동 생성 페이지
 const docs = useDocumentsStore();
 const busy = ref(false);
+// 003 US1(T022): 마지막 생성 결과의 경로(AI/규칙)를 자연스럽게 안내(오류 아님).
+const lastGenerated = ref(null);
 onMounted(() => docs.fetchAll());
 const TYPES = [
     { value: 'resume', label: '이력서' },
@@ -12,7 +14,7 @@ const TYPES = [
 async function generate(type) {
     busy.value = true;
     try {
-        await docs.generate(type);
+        lastGenerated.value = await docs.generate(type);
     }
     finally {
         busy.value = false;
@@ -24,6 +26,8 @@ let __VLS_components;
 let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['gen']} */ ;
 /** @type {__VLS_StyleScopedClasses['gen']} */ ;
+/** @type {__VLS_StyleScopedClasses['gen-note']} */ ;
+/** @type {__VLS_StyleScopedClasses['gen-note']} */ ;
 /** @type {__VLS_StyleScopedClasses['status']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
@@ -53,6 +57,15 @@ if (__VLS_ctx.docs.lastError) {
         ...{ class: "error" },
     });
     (__VLS_ctx.docs.lastError);
+}
+if (__VLS_ctx.lastGenerated) {
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.p, __VLS_intrinsicElements.p)({
+        ...{ class: "gen-note" },
+        ...{ class: (__VLS_ctx.lastGenerated.ai_source === 'ai' ? 'ai' : 'rule') },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.strong, __VLS_intrinsicElements.strong)({});
+    (__VLS_ctx.lastGenerated.title);
+    (__VLS_ctx.lastGenerated.ai_source === 'ai' ? 'AI가 활동 기록을 바탕으로 작성했습니다.' : '기본 템플릿으로 작성했습니다.');
 }
 __VLS_asFunctionalElement(__VLS_intrinsicElements.ul, __VLS_intrinsicElements.ul)({
     ...{ class: "list" },
@@ -94,6 +107,7 @@ if (!__VLS_ctx.docs.loading && __VLS_ctx.docs.documents.length === 0) {
 /** @type {__VLS_StyleScopedClasses['muted']} */ ;
 /** @type {__VLS_StyleScopedClasses['gen']} */ ;
 /** @type {__VLS_StyleScopedClasses['error']} */ ;
+/** @type {__VLS_StyleScopedClasses['gen-note']} */ ;
 /** @type {__VLS_StyleScopedClasses['list']} */ ;
 /** @type {__VLS_StyleScopedClasses['doc']} */ ;
 /** @type {__VLS_StyleScopedClasses['badge']} */ ;
@@ -106,6 +120,7 @@ const __VLS_self = (await import('vue')).defineComponent({
         return {
             docs: docs,
             busy: busy,
+            lastGenerated: lastGenerated,
             TYPES: TYPES,
             generate: generate,
         };

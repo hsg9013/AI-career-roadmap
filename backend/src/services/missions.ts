@@ -4,6 +4,7 @@ import { HttpError } from '../middlewares/errorHandler.js';
 import { queues } from '../queues/index.js';
 import { track } from '../lib/analytics.js';
 import { logger } from '../lib/logger.js';
+import { runInference } from './ai/infer.js';
 
 // T036/T037: 미션 제출 + AI 1차 피드백 + 현직자 검수 SLA(5영업일) (FR-010~012, R-8)
 
@@ -35,10 +36,36 @@ export async function listMissions(): Promise<unknown[]> {
   return rows as unknown[];
 }
 
-function aiFeedback(content: string): string {
+// 규칙 기반 1차 피드백 — AI 미사용/실패 시 폴백(기존 휴리스틱 유지).
+function ruleFeedback(content: string): string {
   const len = content.trim().length;
   const depth = len > 400 ? '충분한 분량으로 작성되었습니다.' : '핵심 근거와 예시를 더 보강하면 좋겠습니다.';
   return `[AI 1차 분석] 제출 내용 ${len}자. ${depth} 구조(문제정의→접근→결과)와 정량적 성과 표현을 점검하세요.`;
+}
+
+// 003 US1(T019): 미션 제출 1차 AI 피드백. 제출물은 학생 본인의 산출물 → 익명화하지 않음.
+// HTTP 호출은 트랜잭션 밖에서 수행하고, 실패·무키·예산초과 시 규칙 기반으로 폴백한다.
+async function aiFeedback(content: string, missionId: number): Promise<string> {
+  try {
+    const system =
+      '당신은 한국 대학생의 미션 제출물을 1차로 검토하는 코치입니다. ' +
+      '제출 내용을 근거로 강점 1가지와 개선점 2가지를 한국어로 간결히 제시하세요. ' +
+      '반드시 {"feedback": string} JSON 형식만 출력하세요.';
+    const user = JSON.stringify({ submission: content.slice(0, 4000) });
+    const res = await runInference({ feature: 'mission_feedback', subjectRef: missionId, system, user });
+    if (res.source === 'ai' && res.text) {
+      const start = res.text.indexOf('{');
+      const end = res.text.lastIndexOf('}');
+      if (start >= 0 && end > start) {
+        const parsed = JSON.parse(res.text.slice(start, end + 1)) as { feedback?: unknown };
+        const fb = typeof parsed.feedback === 'string' ? parsed.feedback.trim() : '';
+        if (fb) return `[AI 1차 분석] ${fb}`;
+      }
+    }
+  } catch (err) {
+    logger.warn({ err, missionId }, '[missions] AI feedback failed — rule fallback');
+  }
+  return ruleFeedback(content);
 }
 
 export interface SubmitResult {
@@ -54,6 +81,9 @@ export async function submitMission(
   content: string,
   storageKey?: string,
 ): Promise<SubmitResult> {
+  // 1차 AI 피드백은 트랜잭션 밖에서 생성(외부 HTTP 가 DB 트랜잭션을 점유하지 않도록).
+  const fb = await aiFeedback(content, missionId);
+
   return withTransaction(async (conn) => {
     const studentId = await resolveStudentId(conn, userId);
     const [m] = await conn.query("SELECT id FROM missions WHERE id = ? AND status = 'open' LIMIT 1", [missionId]);
@@ -66,7 +96,6 @@ export async function submitMission(
     );
     const submissionId = (ins as { insertId: number }).insertId;
 
-    const fb = aiFeedback(content);
     await conn.query(
       "INSERT INTO feedbacks (submission_id, kind, content) VALUES (?, 'ai', ?)",
       [submissionId, fb],

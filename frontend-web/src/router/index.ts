@@ -8,6 +8,18 @@ const routes: RouteRecordRaw[] = [
   { path: '/login', name: 'login', component: () => import('../pages/Login.vue') },
   { path: '/forbidden', name: 'forbidden', component: () => import('../pages/Forbidden.vue') },
   {
+    path: '/school-email',
+    name: 'school-email',
+    component: () => import('../pages/SchoolEmailVerify.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    // 이메일 링크 확정 — 토큰 기반이라 무인증 접근 허용.
+    path: '/school-email/confirm',
+    name: 'school-email-confirm',
+    component: () => import('../pages/SchoolEmailConfirm.vue'),
+  },
+  {
     path: '/onboarding',
     name: 'onboarding',
     component: () => import('../pages/Onboarding.vue'),
@@ -35,6 +47,12 @@ const routes: RouteRecordRaw[] = [
     path: '/missions',
     name: 'missions',
     component: () => import('../pages/Missions.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/feeds',
+    name: 'feeds',
+    component: () => import('../pages/Feeds.vue'),
     meta: { requiresAuth: true },
   },
   {

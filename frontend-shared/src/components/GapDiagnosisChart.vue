@@ -19,6 +19,14 @@ const scoreColor = computed(() => {
 const radius = 56;
 const circumference = 2 * Math.PI * radius;
 const dash = computed(() => (props.diagnosis.overall_score / 100) * circumference);
+
+// 003 US1(T022): AI/규칙 경로를 사용자 친화적으로 표시. 폴백은 오류가 아닌 '기본 분석'으로 안내.
+const insightBadge = computed(() => {
+  const src = props.diagnosis.insight?.source;
+  return src === 'llm' || src === 'cache'
+    ? { label: 'AI 분석', cls: 'ai' }
+    : { label: '기본 분석', cls: 'rule' };
+});
 </script>
 
 <template>
@@ -66,11 +74,13 @@ const dash = computed(() => (props.diagnosis.overall_score / 100) * circumferenc
     </div>
 
     <div v-if="diagnosis.insight" class="insight">
+      <div class="insight-head">
+        <span class="ai-badge" :class="insightBadge.cls">{{ insightBadge.label }}</span>
+      </div>
       <p class="narrative">{{ diagnosis.insight.narrative }}</p>
       <ul v-if="diagnosis.insight.suggestions.length > 0" class="suggestions">
         <li v-for="(s, i) in diagnosis.insight.suggestions" :key="i">{{ s }}</li>
       </ul>
-      <small class="source">source: {{ diagnosis.insight.source }} · {{ diagnosis.insight.model_version }}</small>
     </div>
   </section>
 </template>
@@ -100,5 +110,8 @@ const dash = computed(() => (props.diagnosis.overall_score / 100) * circumferenc
 }
 .insight .narrative { margin: 0 0 0.5rem; }
 .insight .suggestions { margin: 0; padding-left: 1.2rem; color: #1e3a8a; }
-.insight .source { color: #6b7280; font-size: 0.75rem; }
+.insight-head { margin-bottom: 0.4rem; }
+.ai-badge { font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 999px; }
+.ai-badge.ai { background: #dbeafe; color: #1e40af; }
+.ai-badge.rule { background: #f3f4f6; color: #4b5563; }
 </style>

@@ -351,4 +351,25 @@
 
 ---
 
-*본 ISP는 `specs/001-ai-career-roadmap/`의 spec·plan·research·data-model·tasks 산출물에 정렬되며, 해당 산출물 갱신 시 동기화되어야 한다.*
+## 부록 A. 003 실연동·안정화 구현 현황 (2026-06 갱신)
+
+001/002로 구조를 갖춘 12개 기능군 위에, 003은 **stub→실연동 전환 + 운영 안정성**을 구현했다. 모든 외부 연동은 키 없이도 폴백으로 동작한다(점진 활성화, FR-020).
+
+| 스토리 | 구현 핵심 | 폴백/안전장치 |
+|---|---|---|
+| US1 AI 실연동 | `services/ai/`(claude·infer SSOT) → 진단·로드맵·문서·미션 피드백을 Claude 연동. `ai_inference_log`/`ai_budget_counter`(V021) | 무키·타임아웃·파싱실패·예산초과 시 규칙 폴백, 호출 1건당 1행 기록, 입력 PII+민감속성 제거 |
+| US2 직무·산업 사전 | catalog 모듈, 산업 10·직무 50 시드(V017/V018) | 공개 조회 API |
+| US3 결제·정산 | PortOne checkout·웹훅 멱등·상태기계·정산 원장·정합성 reconcile(V022) | 무키 dev 즉시승인, 서명검증·`pg_event_id` 멱등, 불일치 자동정정→운영 경보 |
+| US4 알림 3채널 | `dispatchNotification`(in_app 항상 sent, push/email 설정 반영)·`notification_delivery`·재시도(V023) | 무키 푸시 시뮬레이션·콘솔 메일, 실패 BullMQ 재시도 |
+| US5 외부 수집 | `services/feeds/`(소스별 커넥터·일 단위 수집·신선도)·`external_feed_item`(V025) | 크롤링 금지(공식/제휴만), 수집 실패 시 기존 유지, stale 표시 |
+| US6 소셜·학교검증 | 네이버 OAuth(생성/연결)·`.ac.kr` 검증(V024) | 무키 dev 합성 프로필, 비-.ac.kr 422 |
+| US8 운영 안정성 | 백업·복구 런북·헬스·모니터링·`GET /ops/metrics` 대시보드 | db/redis down→critical 경보, 폴백률·성공률·KPI 집계 |
+
+- **마이그레이션**: V017~V025 (003 신규 테이블 전부 적용).
+- **테스트**: 139건(계약 29·AI 폴백·결제 멱등·3채널·소셜/학교·수집·프라이버시 불변식·성능 스모크) 통과.
+- **성능 목표**: 로드맵 p95<2.0s(폴백 포함)·조회 p95<200ms·푸시<5s (운영 부하 측정 기준).
+- **잔여**: US7 모바일 스토어 배포(T045–T048) — 별도 트랙. 웹 UI는 진단·로드맵·문서·결제·알림설정·학교인증·피드까지 연동 완료.
+
+---
+
+*본 ISP는 `specs/001-ai-career-roadmap/`(구조)와 `specs/003-intent-specify/`(실연동·안정화) 산출물에 정렬되며, 해당 산출물 갱신 시 동기화되어야 한다.*

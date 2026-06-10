@@ -34,6 +34,8 @@ export interface GapInsight {
   narrative: string;
   suggestions: string[];
   model_version: string;
+  // 003 US1(T021): 룰 폴백 사유(none=AI 정상). 사용자에겐 오류로 노출하지 않는다.
+  fallback_reason?: 'none' | 'error' | 'timeout' | 'budget' | 'no_credentials';
 }
 
 export interface GapDiagnosis {

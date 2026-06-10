@@ -23,6 +23,9 @@ import alumniRouter from './modules/alumni/router.js';
 import jobPostingsRouter from './modules/jobpostings/router.js';
 import adminRouter from './modules/admin/router.js';
 import consentRouter from './modules/consent/router.js';
+import catalogRouter from './modules/catalog/router.js';
+import opsRouter from './modules/ops/router.js';
+import feedsRouter from './modules/feeds/router.js';
 
 // T035: 모든 미들웨어·라우터 와이어링
 
@@ -58,7 +61,15 @@ export function createApp(): Express {
     }),
   );
 
-  app.use(express.json({ limit: '1mb' }));
+  // raw body 보존 — PortOne 웹훅 HMAC 서명 검증용(US3/T024).
+  app.use(
+    express.json({
+      limit: '1mb',
+      verify: (req, _res, buf) => {
+        (req as express.Request & { rawBody?: Buffer }).rawBody = buf;
+      },
+    }),
+  );
 
   // 헬스 체크 — 인증 무관
   app.get('/healthz', (_req, res) => {
@@ -74,6 +85,9 @@ export function createApp(): Express {
 
   // v1 API — 인증 영역은 별도 rate-limit 적용
   const v1 = express.Router();
+  v1.use('/catalog', catalogRouter);
+  v1.use('/ops', opsRouter);
+  v1.use('/feeds', feedsRouter);
   v1.use('/auth', rateLimit({ windowSeconds: 60, max: 30, keyPrefix: 'rl:auth' }), authRouter);
   v1.use('/students/me/match-consent', matchConsentRouter);
   v1.use('/students', studentsRouter);

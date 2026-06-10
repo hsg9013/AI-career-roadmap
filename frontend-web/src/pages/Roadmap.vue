@@ -88,9 +88,15 @@ async function reject(item: RoadmapItem): Promise<void> {
     <p v-if="roadmap.lastError" class="error">{{ roadmap.lastError }}</p>
 
     <div v-if="current">
+      <div v-if="current.ai_summary" class="ai-summary">
+        <span class="ai-badge" :class="current.ai_source === 'ai' ? 'ai' : 'rule'">
+          {{ current.ai_source === 'ai' ? 'AI 코칭' : '코칭 요약' }}
+        </span>
+        <p>{{ current.ai_summary }}</p>
+      </div>
       <p v-if="current.notice" class="notice">⚠ {{ current.notice }}</p>
       <p class="meta muted">
-        근거: {{ current.source === 'cohort' ? '코호트' : '폴백' }}
+        근거: {{ current.source === 'cohort' ? '선배 코호트' : '직무 요구역량 기반' }}
         · 선배 표본 {{ current.cohort_size }}명
         <span v-if="current.cohort_key"> · {{ current.cohort_key }}</span>
       </p>
@@ -127,6 +133,11 @@ async function reject(item: RoadmapItem): Promise<void> {
 .tabs button { border: 1px solid #d1d5db; background: #fff; border-radius: 999px; padding: 0.35rem 0.9rem; cursor: pointer; }
 .tabs button.active { background: #111827; color: #fff; border-color: #111827; }
 .notice { background: #fef3c7; color: #92400e; padding: 0.6rem 0.8rem; border-radius: 8px; }
+.ai-summary { background: #eff6ff; border-left: 3px solid #2563eb; border-radius: 6px; padding: 0.7rem 0.9rem; margin: 0.8rem 0; }
+.ai-summary p { margin: 0.4rem 0 0; color: #1e3a8a; }
+.ai-badge { font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 999px; }
+.ai-badge.ai { background: #dbeafe; color: #1e40af; }
+.ai-badge.rule { background: #f3f4f6; color: #4b5563; }
 .error { color: #b91c1c; }
 .period { margin-top: 1.2rem; }
 .period h3 { margin: 0 0 0.5rem; border-left: 4px solid #2563eb; padding-left: 0.5rem; }

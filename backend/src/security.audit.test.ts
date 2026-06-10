@@ -46,6 +46,26 @@ describe('T069 보안 감사', () => {
     expect(out.missing).toEqual(['sql']);
   });
 
+  it('AI 입력 anonymize 는 민감 인구통계(성별·나이·출신학교)도 제거한다 (FR-019, T021a)', () => {
+    const out = anonymize({
+      job_role: 'IT/backend',
+      gender: 'female',
+      age: 24,
+      school: '한국대학교',
+      university: '한국대학교',
+      hometown: '부산',
+      score: 72,
+      missing: ['k8s'],
+    });
+    for (const forbidden of ['gender', 'age', 'school', 'university', 'hometown']) {
+      expect(out[forbidden]).toBeUndefined();
+    }
+    // 진단에 필요한 비민감 신호는 보존.
+    expect(out.job_role).toBe('IT/backend');
+    expect(out.score).toBe(72);
+    expect(out.missing).toEqual(['k8s']);
+  });
+
   it('students 테이블에는 추천 편향 유발 민감 속성(gender/age) 컬럼이 없다 (FR-007)', async () => {
     const [rows] = await getPool().query(
       `SELECT column_name FROM information_schema.columns

@@ -30,6 +30,50 @@ async function performLogin() {
     const target = route.query.redirect ?? '/dashboard';
     await router.push(target);
 }
+// 003 US6(T044): 네이버 로그인.
+//   • 실연동(VITE_NAVER_CLIENT_ID 설정): 네이버 인증 페이지로 리다이렉트(콜백이 code 회수).
+//   • dev(미설정): 합성 code 로 백엔드 dev 경로를 태워 생성/로그인 흐름을 시연.
+const naverClientId = import.meta.env?.VITE_NAVER_CLIENT_ID ?? '';
+async function loginNaver() {
+    errorMsg.value = null;
+    if (naverClientId) {
+        const redirectUri = `${window.location.origin}/login`;
+        const state = Math.random().toString(36).slice(2);
+        window.location.assign(`https://nid.naver.com/oauth2.0/authorize?response_type=code` +
+            `&client_id=${encodeURIComponent(naverClientId)}` +
+            `&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`);
+        return;
+    }
+    submitting.value = true;
+    try {
+        const { created } = await auth.loginWithNaver(`web-naver-dev-${Date.now()}`);
+        await router.push(created ? '/onboarding' : '/dashboard');
+    }
+    catch {
+        errorMsg.value = '네이버 로그인에 실패했습니다';
+    }
+    finally {
+        submitting.value = false;
+    }
+}
+// 실연동 콜백 처리: ?code= 가 있으면 즉시 소셜 로그인 교환.
+async function maybeHandleNaverCallback() {
+    const code = route.query.code;
+    if (!code)
+        return;
+    submitting.value = true;
+    try {
+        const { created } = await auth.loginWithNaver(code, route.query.state ?? '');
+        await router.push(created ? '/onboarding' : '/dashboard');
+    }
+    catch {
+        errorMsg.value = '네이버 로그인에 실패했습니다';
+    }
+    finally {
+        submitting.value = false;
+    }
+}
+void maybeHandleNaverCallback();
 async function onSubmit() {
     errorMsg.value = null;
     submitting.value = true;
@@ -72,6 +116,11 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['field']} */ ;
 /** @type {__VLS_StyleScopedClasses['field']} */ ;
 /** @type {__VLS_StyleScopedClasses['submit']} */ ;
+/** @type {__VLS_StyleScopedClasses['divider']} */ ;
+/** @type {__VLS_StyleScopedClasses['divider']} */ ;
+/** @type {__VLS_StyleScopedClasses['divider']} */ ;
+/** @type {__VLS_StyleScopedClasses['naver']} */ ;
+/** @type {__VLS_StyleScopedClasses['naver']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_intrinsicElements.section, __VLS_intrinsicElements.section)({
@@ -165,6 +214,17 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     type: "submit",
 });
 (__VLS_ctx.submitting ? '처리 중…' : __VLS_ctx.mode === 'login' ? '로그인' : '가입 후 로그인');
+__VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+    ...{ class: "divider" },
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+    ...{ onClick: (__VLS_ctx.loginNaver) },
+    ...{ class: "naver" },
+    type: "button",
+    disabled: (__VLS_ctx.submitting),
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.strong, __VLS_intrinsicElements.strong)({});
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
 /** @type {__VLS_StyleScopedClasses['tabs']} */ ;
 /** @type {__VLS_StyleScopedClasses['field']} */ ;
@@ -174,6 +234,8 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
 /** @type {__VLS_StyleScopedClasses['field']} */ ;
 /** @type {__VLS_StyleScopedClasses['err']} */ ;
 /** @type {__VLS_StyleScopedClasses['submit']} */ ;
+/** @type {__VLS_StyleScopedClasses['divider']} */ ;
+/** @type {__VLS_StyleScopedClasses['naver']} */ ;
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup() {
@@ -182,6 +244,7 @@ const __VLS_self = (await import('vue')).defineComponent({
             submitting: submitting,
             errorMsg: errorMsg,
             form: form,
+            loginNaver: loginNaver,
             onSubmit: onSubmit,
         };
     },

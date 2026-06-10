@@ -12,15 +12,20 @@ export {
   type Roadmap,
   type RoadmapItem,
   type RoadmapSource,
+  type AiSource,
 } from './roadmap.js';
 export {
   useDocumentsStore,
   useMissionsStore,
   useNotificationsStore,
+  useFeedsStore,
   type DocType,
   type DocumentItem,
   type Mission,
   type Notification,
+  type NotificationSettings,
+  type FeedItem,
+  type FeedKind,
 } from './services.js';
 export {
   useUniversityStore,
@@ -32,4 +37,7 @@ export {
   type DonateActivityInput,
   type UsageBucket,
   type UsageBreakdown,
+  type PaymentStatus,
+  type CheckoutResult,
+  type PaymentView,
 } from './roleflows.js';

@@ -1,0 +1,276 @@
+openapi: 3.1.0
+info:
+  title: AI Career Roadmap API — 003 실연동·안정화 delta
+  version: 0.3.0
+  description: >
+    003에서 신규/변경되는 엔드포인트만 정의한 델타 명세. 기존 001/002 경로는
+    specs/002-intent-specify/contracts/openapi.yaml 을 계승한다. 인증은 002와 동일(JWT).
+servers:
+  - url: https://p16.sumzip.com/api/v1
+    description: production (nginx 단일 도메인)
+  - url: http://localhost:9536/v1
+    description: local backend
+
+tags:
+  - name: catalog
+  - name: ai
+  - name: payments
+  - name: notifications
+  - name: feeds
+  - name: auth
+  - name: ops
+
+paths:
+  # ── US2 직무·산업 사전 ──
+  /catalog/industries:
+    get:
+      tags: [catalog]
+      summary: 산업 목록(회원가입 선택지) — 10개
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Industry' }
+  /catalog/industries/{industryId}/jobs:
+    get:
+      tags: [catalog]
+      summary: 산업별 직무 목록(키워드 포함)
+      parameters:
+        - { name: industryId, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/JobRole' }
+
+  # ── US1 AI 실연동 (기존 경로 동작 변경, 폴백 메타 노출) ──
+  /gap-diagnosis:
+    post:
+      tags: [ai]
+      summary: 역량 갭 진단(직무 사전 기준, Claude 연동·실패 시 규칙 폴백)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jobRoleId]
+              properties:
+                jobRoleId: { type: integer }
+                profileRef: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AiResult' }
+
+  # ── US3 결제·정산 ──
+  /payments/checkout:
+    post:
+      tags: [payments]
+      summary: 멤버십/단건 결제 시작
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productType]
+              properties:
+                productType: { type: string, enum: [membership, single] }
+                itemRef: { type: string }
+      responses:
+        '201':
+          description: 결제 생성(PG 리디렉션/세션)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+  /payments/webhook:
+    post:
+      tags: [payments]
+      summary: PortOne 웹훅(승인/취소/환불, 멱등)
+      description: 서명 검증 + pg_event_id 멱등 처리. 재수신은 200으로 무시.
+      responses:
+        '200': { description: 처리/중복무시 }
+        '400': { description: 서명 검증 실패 }
+  /payments/{paymentId}:
+    get:
+      tags: [payments]
+      summary: 결제 상태 조회
+      parameters:
+        - { name: paymentId, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+
+  # ── US4 알림 채널 설정 ──
+  /notifications/settings:
+    get:
+      tags: [notifications]
+      summary: 채널별 알림 설정 조회
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationSettings' }
+    put:
+      tags: [notifications]
+      summary: 채널별 알림 설정 변경(push/email on·off, in_app 항상 on)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationSettings' }
+      responses:
+        '200': { description: OK }
+
+  # ── US5 외부 수집 피드 ──
+  /feeds/items:
+    get:
+      tags: [feeds]
+      summary: 외부 채용·자격증·공모전 항목(신선도 포함)
+      parameters:
+        - { name: kind, in: query, schema: { type: string, enum: [jobposting, certification, contest] } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/FeedItem' }
+
+  # ── US6 소셜 로그인·학교 검증 ──
+  /auth/social/naver:
+    post:
+      tags: [auth]
+      summary: 네이버 OAuth 로그인/연결
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, description: 네이버 인가 코드 }
+      responses:
+        '200':
+          description: 로그인/계정 연결
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+  /auth/school-email/verify:
+    post:
+      tags: [auth]
+      summary: 학교 이메일(.ac.kr) 검증 요청
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '202': { description: 인증 메일 발송 }
+        '422': { description: 비-.ac.kr 주소 거부 }
+
+  # ── US8 운영 안정성 관측 ──
+  /ops/health:
+    get:
+      tags: [ops]
+      summary: 헬스·구성요소 상태(모니터링용)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [ok, degraded, down] }
+                  components:
+                    type: object
+                    additionalProperties: { type: string }
+                  lastBackupAt: { type: string, format: date-time }
+
+components:
+  schemas:
+    Industry:
+      type: object
+      properties:
+        id: { type: integer }
+        code: { type: string }
+        name: { type: string }
+    JobRole:
+      type: object
+      properties:
+        id: { type: integer }
+        industryId: { type: integer }
+        code: { type: string }
+        name: { type: string }
+        competencies:
+          type: array
+          items: { type: string }
+    AiResult:
+      type: object
+      description: AI 또는 규칙 폴백 결과(인터페이스 동일)
+      properties:
+        result: { type: object, additionalProperties: true }
+        source: { type: string, enum: [ai, fallback_rule] }
+        fallbackReason: { type: string, enum: [none, error, timeout, budget] }
+    Payment:
+      type: object
+      properties:
+        id: { type: integer }
+        productType: { type: string, enum: [membership, single] }
+        status: { type: string, enum: [pending, paid, failed, canceled, refunded] }
+        amount: { type: number }
+        receiptUrl: { type: string }
+    NotificationSettings:
+      type: object
+      properties:
+        push: { type: boolean }
+        email: { type: boolean }
+        inApp: { type: boolean, readOnly: true, default: true }
+    FeedItem:
+      type: object
+      properties:
+        id: { type: integer }
+        kind: { type: string, enum: [jobposting, certification, contest] }
+        source: { type: string }
+        collectedAt: { type: string, format: date-time }
+        freshness: { type: string, enum: [fresh, stale] }
+        payload: { type: object, additionalProperties: true }
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []

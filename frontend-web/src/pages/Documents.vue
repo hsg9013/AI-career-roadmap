@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useDocumentsStore, type DocType } from 'frontend-shared';
+import { useDocumentsStore, type DocType, type DocumentItem } from 'frontend-shared';
 
 // US3 문서 자동 생성 페이지
 
 const docs = useDocumentsStore();
 const busy = ref(false);
+// 003 US1(T022): 마지막 생성 결과의 경로(AI/규칙)를 자연스럽게 안내(오류 아님).
+const lastGenerated = ref<DocumentItem | null>(null);
 
 onMounted(() => docs.fetchAll());
 
@@ -18,7 +20,7 @@ const TYPES: { value: DocType; label: string }[] = [
 async function generate(type: DocType): Promise<void> {
   busy.value = true;
   try {
-    await docs.generate(type);
+    lastGenerated.value = await docs.generate(type);
   } finally {
     busy.value = false;
   }
@@ -38,6 +40,11 @@ async function generate(type: DocType): Promise<void> {
     </div>
 
     <p v-if="docs.lastError" class="error">{{ docs.lastError }}</p>
+
+    <p v-if="lastGenerated" class="gen-note" :class="lastGenerated.ai_source === 'ai' ? 'ai' : 'rule'">
+      <strong>{{ lastGenerated.title }}</strong> 생성 완료 —
+      {{ lastGenerated.ai_source === 'ai' ? 'AI가 활동 기록을 바탕으로 작성했습니다.' : '기본 템플릿으로 작성했습니다.' }}
+    </p>
 
     <ul class="list">
       <li v-for="d in docs.documents" :key="d.id" class="doc">
@@ -60,6 +67,9 @@ async function generate(type: DocType): Promise<void> {
 .gen button { background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 0.55rem 1rem; cursor: pointer; }
 .gen button:disabled { opacity: 0.5; }
 .error { color: #b91c1c; }
+.gen-note { border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.9rem; }
+.gen-note.ai { background: #eff6ff; color: #1e40af; }
+.gen-note.rule { background: #f3f4f6; color: #4b5563; }
 .list { list-style: none; padding: 0; display: grid; gap: 0.5rem; }
 .doc { display: flex; justify-content: space-between; align-items: center; border: 1px solid #e5e7eb; border-radius: 10px; padding: 0.7rem 0.9rem; }
 .badge { margin-left: 0.5rem; font-size: 0.75rem; color: #6b7280; }

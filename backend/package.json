@@ -15,7 +15,8 @@
     "seed:usage": "tsx scripts/seed-usage.ts",
     "seed:admin": "tsx scripts/seed-admin.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "backup:run": "tsx ops/backup/backup.ts"
   },
   "dependencies": {
     "express": "^4.21.0",

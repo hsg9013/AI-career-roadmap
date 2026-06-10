@@ -1,27 +1,44 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import type { TargetJob } from '../stores/student.js';
+import { getApi } from '../api/client.js';
 
-// T054: 목표 직무 선택 (최대 3, FR-009).
-// 산업·직무 코드는 백엔드 시드(V006) 기준 — 운영 단계에선 별도 API 로 옮긴다.
+// T054 + 003 US2(T014): 목표 직무 선택 (최대 3, FR-009).
+// 산업·직무 선택지는 백엔드 직무·산업 사전 API(/catalog/*)에서 동적으로 로드(산업 10·직무 ~50).
 
-const CATALOG: Array<{ industry_code: string; label: string; roles: Array<{ code: string; label: string }> }> = [
-  {
-    industry_code: 'IT',
-    label: 'IT',
-    roles: [
-      { code: 'backend', label: '백엔드' },
-      { code: 'frontend', label: '프론트엔드' },
-      { code: 'data', label: '데이터' },
-      { code: 'ml', label: 'ML/AI' },
-    ],
-  },
-  {
-    industry_code: 'FIN',
-    label: '금융',
-    roles: [{ code: 'quant', label: '퀀트' }],
-  },
-];
+interface Industry {
+  code: string;
+  name: string;
+}
+interface JobRole {
+  code: string;
+  name: string;
+}
+
+const industries = ref<Industry[]>([]);
+const jobsByIndustry = ref<Record<string, JobRole[]>>({});
+const catalogError = ref<string | null>(null);
+
+async function loadIndustries(): Promise<void> {
+  try {
+    const { data } = await getApi().get<{ items: Industry[] }>('/catalog/industries');
+    industries.value = data.items;
+  } catch {
+    catalogError.value = '산업 목록을 불러오지 못했습니다.';
+  }
+}
+
+async function loadJobs(industryCode: string): Promise<void> {
+  if (!industryCode || jobsByIndustry.value[industryCode]) return;
+  try {
+    const { data } = await getApi().get<{ items: JobRole[] }>(
+      `/catalog/industries/${encodeURIComponent(industryCode)}/jobs`,
+    );
+    jobsByIndustry.value = { ...jobsByIndustry.value, [industryCode]: data.items };
+  } catch {
+    catalogError.value = '직무 목록을 불러오지 못했습니다.';
+  }
+}
 
 const props = defineProps<{
   initial?: TargetJob[];
@@ -59,16 +76,25 @@ watch(
   },
 );
 
-function rolesFor(industry: string) {
-  return CATALOG.find((c) => c.industry_code === industry)?.roles ?? [];
+function rolesFor(industry: string): JobRole[] {
+  return jobsByIndustry.value[industry] ?? [];
 }
 
 function onIndustryChange(idx: number): void {
   const slot = slots.value[idx];
   if (!slot) return;
-  // 산업 변경 시 직무 선택 리셋
+  // 산업 변경 시 직무 선택 리셋 + 해당 산업 직무 목록 로드
   slot.job_role_code = '';
+  void loadJobs(slot.industry_code);
 }
+
+onMounted(async () => {
+  await loadIndustries();
+  // 기존 선택값이 있으면 해당 산업의 직무도 미리 로드
+  for (const s of slots.value) {
+    if (s.industry_code) await loadJobs(s.industry_code);
+  }
+});
 
 const filledCount = computed(() =>
   slots.value.filter((s) => s.industry_code && s.job_role_code).length,
@@ -111,17 +137,18 @@ function onSubmit(): void {
       <span class="priority">#{{ idx + 1 }}</span>
       <select v-model="slot.industry_code" :disabled="disabled" @change="onIndustryChange(idx)">
         <option value="">— 산업 —</option>
-        <option v-for="c in CATALOG" :key="c.industry_code" :value="c.industry_code">
-          {{ c.label }}
+        <option v-for="c in industries" :key="c.code" :value="c.code">
+          {{ c.name }}
         </option>
       </select>
       <select v-model="slot.job_role_code" :disabled="disabled || !slot.industry_code">
         <option value="">— 직무 —</option>
         <option v-for="r in rolesFor(slot.industry_code)" :key="r.code" :value="r.code">
-          {{ r.label }}
+          {{ r.name }}
         </option>
       </select>
     </div>
+    <p v-if="catalogError" class="err">{{ catalogError }}</p>
     <p v-if="fieldError" class="err">{{ fieldError }}</p>
     <button type="submit" :disabled="disabled || filledCount === 0" class="submit">
       저장 ({{ filledCount }}/3)

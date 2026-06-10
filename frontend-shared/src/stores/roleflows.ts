@@ -93,21 +93,61 @@ export const useAdminStore = defineStore('admin', () => {
   return { usage, loading, lastError, fetchUsage };
 });
 
-// US8 결제·정산
+// US8/US3 결제·정산
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'canceled' | 'refunded';
+export interface CheckoutResult {
+  payment_id: number;
+  status: PaymentStatus;
+  membership_ends_at: string | null;
+  pg_tx_id: string;
+  receipt_url: string | null;
+  redirect_url: string | null;
+}
+export interface PaymentView {
+  id: number;
+  kind: string;
+  amount: number;
+  status: PaymentStatus;
+  pg_tx_id: string | null;
+  receipt_url: string | null;
+  created_at: string;
+  membership_ends_at: string | null;
+}
+
 export const usePaymentsStore = defineStore('payments', () => {
-  const result = ref<unknown | null>(null);
+  const result = ref<CheckoutResult | null>(null);
+  const payment = ref<PaymentView | null>(null);
   const payouts = ref<unknown[]>([]);
   const loading = ref(false);
   const lastError = ref<string | null>(null);
-  async function checkout(amount: number, plan = 'standard'): Promise<void> {
+  async function checkout(amount: number, plan = 'standard'): Promise<CheckoutResult> {
     loading.value = true;
     lastError.value = null;
     try {
-      const { data } = await getApi().post('/payments/checkout', { kind: 'membership', amount, plan });
+      const { data } = await getApi().post<CheckoutResult>('/payments/checkout', { kind: 'membership', amount, plan });
       result.value = data;
+      // 실연동(pending+redirect)일 때 결제창으로 이동.
+      if (data.status === 'pending' && data.redirect_url && typeof window !== 'undefined') {
+        window.location.assign(data.redirect_url);
+      }
+      return data;
     } catch (e) {
       lastError.value = err(e);
       throw e;
+    } finally {
+      loading.value = false;
+    }
+  }
+  // 003 US3(T028): 결제 상태·영수증 조회(웹훅 확정 후 폴링/새로고침용).
+  async function fetchPayment(paymentId: number): Promise<PaymentView | null> {
+    loading.value = true;
+    try {
+      const { data } = await getApi().get<PaymentView>(`/payments/${paymentId}`);
+      payment.value = data;
+      return data;
+    } catch (e) {
+      lastError.value = err(e);
+      return null;
     } finally {
       loading.value = false;
     }
@@ -116,7 +156,7 @@ export const usePaymentsStore = defineStore('payments', () => {
     const { data } = await getApi().get<unknown[]>('/payments/mentor-payouts');
     payouts.value = data;
   }
-  return { result, payouts, loading, lastError, checkout, fetchPayouts };
+  return { result, payment, payouts, loading, lastError, checkout, fetchPayment, fetchPayouts };
 });
 
 // US9 선배 기부

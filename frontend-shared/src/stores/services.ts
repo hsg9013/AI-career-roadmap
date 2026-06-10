@@ -21,6 +21,8 @@ export interface DocumentItem {
   content: unknown;
   status: 'draft' | 'final';
   updated_at: string;
+  // 003 US1(T018): 생성 경로(ai=AI 생성, fallback_rule=규칙 기반). 응답에만 포함될 수 있음.
+  ai_source?: 'ai' | 'fallback_rule';
 }
 
 export const useDocumentsStore = defineStore('documents', () => {
@@ -127,8 +129,15 @@ export interface Notification {
   read_at: string | null;
 }
 
+export interface NotificationSettings {
+  inApp: true;
+  push: boolean;
+  email: boolean;
+}
+
 export const useNotificationsStore = defineStore('notifications', () => {
   const notifications = ref<Notification[]>([]);
+  const settings = ref<NotificationSettings>({ inApp: true, push: true, email: true });
   const loading = ref(false);
 
   async function fetchAll(): Promise<void> {
@@ -146,5 +155,56 @@ export const useNotificationsStore = defineStore('notifications', () => {
     await fetchAll();
   }
 
-  return { notifications, loading, fetchAll, markRead };
+  // 003 US4(T037): 채널 설정 조회/변경. in_app 은 항상 on(서버 강제).
+  async function fetchSettings(): Promise<void> {
+    const { data } = await getApi().get<NotificationSettings>('/notifications/settings');
+    settings.value = data;
+  }
+
+  async function updateSettings(next: { push: boolean; email: boolean }): Promise<void> {
+    const { data } = await getApi().put<NotificationSettings>('/notifications/settings', next);
+    settings.value = data;
+  }
+
+  // 003 US4(T034b): 디바이스 푸시 토큰 등록(모바일/웹 푸시).
+  async function registerDevice(platform: 'ios' | 'android' | 'web', token: string): Promise<void> {
+    await getApi().post('/notifications/devices', { platform, token });
+  }
+
+  return {
+    notifications, settings, loading,
+    fetchAll, markRead, fetchSettings, updateSettings, registerDevice,
+  };
+});
+
+// 003 US5: 외부 수집 피드(채용·자격증·공모전).
+export type FeedKind = 'jobposting' | 'certification' | 'contest';
+export interface FeedItem {
+  id: number;
+  kind: FeedKind;
+  source: string;
+  external_id: string;
+  title: string | null;
+  freshness: 'fresh' | 'stale';
+  collected_at: string;
+  payload: unknown;
+}
+
+export const useFeedsStore = defineStore('feeds', () => {
+  const items = ref<FeedItem[]>([]);
+  const loading = ref(false);
+  const kind = ref<FeedKind | ''>('');
+
+  async function fetchItems(filter: { kind?: FeedKind } = {}): Promise<void> {
+    loading.value = true;
+    try {
+      const params = filter.kind ? `?kind=${filter.kind}` : '';
+      const { data } = await getApi().get<FeedItem[]>(`/feeds/items${params}`);
+      items.value = data;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  return { items, loading, kind, fetchItems };
 });

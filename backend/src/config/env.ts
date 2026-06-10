@@ -39,6 +39,11 @@ const EnvSchema = z.object({
   LLM_PROVIDER: z.string().default('anthropic'),
   LLM_API_KEY: z.string().optional().default(''),
   LLM_MODEL: z.string().default('claude-haiku-4-5'),
+  // 003(US1): 실연동 가드 — 호출당 타임아웃(ms)·응답 토큰 상한. 초과·실패 시 규칙 기반 폴백.
+  LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
+  LLM_MAX_TOKENS: z.coerce.number().int().positive().default(1024),
+  // 003(US1): 일일 토큰 예산. 0 = 가드 비활성(상한 없음). 초과 시 신규 AI 호출은 폴백(fallback_reason=budget).
+  AI_DAILY_TOKEN_BUDGET: z.coerce.number().int().nonnegative().default(0),
 
   PORTONE_IMP_KEY: z.string().optional().default(''),
   PORTONE_IMP_SECRET: z.string().optional().default(''),
@@ -61,6 +66,15 @@ const EnvSchema = z.object({
   OAUTH_GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
   OAUTH_NAVER_CLIENT_ID: z.string().optional().default(''),
   OAUTH_NAVER_CLIENT_SECRET: z.string().optional().default(''),
+  // 003 US6: 학교 이메일 확인 링크·소셜 콜백이 가리킬 웹 기준 URL.
+  WEB_BASE_URL: z.string().default('https://p16.sumzip.com'),
+
+  // 003 US5: 외부 수집 피드 — 공식 오픈API·제휴 피드 URL만(크롤링 금지). 미설정 시 dev 샘플 수집.
+  FEED_JOBPOSTING_URL: z.string().optional().default(''),
+  FEED_CERTIFICATION_URL: z.string().optional().default(''),
+  FEED_CONTEST_URL: z.string().optional().default(''),
+  FEED_STALE_AFTER_DAYS: z.coerce.number().int().positive().default(14),
+  FEED_COLLECT_INTERVAL_MS: z.coerce.number().int().positive().default(86_400_000),
 
   // 컬럼 암호화용 (T022 aesGcm) — 32바이트 base64 또는 hex
   CRYPTO_DATA_KEY: z

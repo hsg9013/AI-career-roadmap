@@ -60,3 +60,9 @@ secrets/
 
 # Runtime (local dev process pids/logs — managed by check_project.sh)
 .run/
+
+# 003 US8: DB 백업 산출물(커밋 금지)
+backend/ops/backups/
+
+# 일회성 검증 스크래치(커밋 금지)
+backend/_verify_ops.mts

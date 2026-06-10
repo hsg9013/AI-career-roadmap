@@ -5,6 +5,7 @@ import { getApi } from '../api/client.js';
 // US2 로드맵 Pinia 스토어 — 생성/조회/거부. 응답 모양은 backend OpenAPI 와 일치.
 
 export type RoadmapSource = 'cohort' | 'fallback';
+export type AiSource = 'ai' | 'fallback_rule';
 
 export interface RoadmapItem {
   id: number;
@@ -29,6 +30,9 @@ export interface Roadmap {
   model_version: string;
   notice: string | null;
   items: RoadmapItem[];
+  // 003 US1(T017): AI 코칭 요약 + 사용 경로. 폴백 시에도 자연스러운 요약을 제공(오류 아님).
+  ai_source?: AiSource;
+  ai_summary?: string;
 }
 
 export const useRoadmapStore = defineStore('roadmap', () => {
