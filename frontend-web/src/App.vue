@@ -12,12 +12,13 @@ const links = computed(() => {
   if (role === 'enterprise') return [{ to: '/company', label: '인재 검색' }];
   return [
     { to: '/dashboard', label: '대시보드' },
+    { to: '/activities', label: '활동·스펙' },
     { to: '/roadmap', label: '로드맵' },
     { to: '/documents', label: '문서' },
     { to: '/missions', label: '미션' },
     { to: '/notifications', label: '알림' },
     { to: '/membership', label: '멤버십' },
-    { to: '/donate', label: '기부' },
+    { to: '/donate', label: '합격 경험 공유' },
   ];
 });
 </script>

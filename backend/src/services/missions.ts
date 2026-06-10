@@ -28,10 +28,49 @@ async function resolveStudentId(conn: PoolConnection, userId: number): Promise<n
   return row.id;
 }
 
-export async function listMissions(): Promise<unknown[]> {
-  const [rows] = await getPool().query(
-    `SELECT id, title, industry_code, job_role_code, brief, status
-     FROM missions WHERE status = 'open' ORDER BY created_at DESC`,
+// 004 US3/G2: 학생의 목표 직무에 맞는 미션을 반환한다.
+// - userId 주어지면 학생의 최우선 목표 직무로 필터(없으면 전체 open).
+// - 멘토 출제(created_by NOT NULL)를 기본 세트(created_by NULL)보다 우선 노출.
+export async function listMissions(userId?: number): Promise<unknown[]> {
+  const pool = getPool();
+
+  let industryCode: string | null = null;
+  let jobRoleCode: string | null = null;
+  if (userId != null) {
+    const conn = await pool.getConnection();
+    try {
+      const studentId = await resolveStudentId(conn, userId);
+      const [tj] = await conn.query(
+        `SELECT industry_code, job_role_code FROM target_jobs
+         WHERE student_id = ? ORDER BY priority ASC, id ASC LIMIT 1`,
+        [studentId],
+      );
+      const row = (tj as Array<{ industry_code: string; job_role_code: string }>)[0];
+      if (row) {
+        industryCode = row.industry_code;
+        jobRoleCode = row.job_role_code;
+      }
+    } finally {
+      conn.release();
+    }
+  }
+
+  if (industryCode && jobRoleCode) {
+    const [rows] = await pool.query(
+      `SELECT id, title, industry_code, job_role_code, brief, status,
+              (created_by IS NOT NULL) AS mentor_authored
+       FROM missions
+       WHERE status = 'open' AND industry_code = ? AND job_role_code = ?
+       ORDER BY mentor_authored DESC, created_at DESC`,
+      [industryCode, jobRoleCode],
+    );
+    return rows as unknown[];
+  }
+
+  const [rows] = await pool.query(
+    `SELECT id, title, industry_code, job_role_code, brief, status,
+            (created_by IS NOT NULL) AS mentor_authored
+     FROM missions WHERE status = 'open' ORDER BY mentor_authored DESC, created_at DESC`,
   );
   return rows as unknown[];
 }

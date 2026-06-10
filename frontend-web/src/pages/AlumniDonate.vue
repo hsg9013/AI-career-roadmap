@@ -24,8 +24,8 @@ async function submit(): Promise<void> {
 
 <template>
   <section class="donate">
-    <header><h2>합격 경로 기부</h2>
-      <p class="muted">개인 식별 정보 없이 익명화되어 후배 추천에 활용됩니다. 기부 시 보상(배지)이 지급됩니다.</p>
+    <header><h2>합격 경험 공유</h2>
+      <p class="muted">개인 식별 정보 없이 익명화되어 후배 추천에 활용됩니다. 공유 시 보상(배지)이 지급됩니다.</p>
     </header>
 
     <div class="row">
@@ -45,10 +45,10 @@ async function submit(): Promise<void> {
     <button class="ghost" @click="addRow">+ 활동 추가</button>
 
     <div class="actions">
-      <button :disabled="store.loading" @click="submit">{{ store.loading ? '제출 중…' : '기부하기' }}</button>
+      <button :disabled="store.loading" @click="submit">{{ store.loading ? '제출 중…' : '공유하기' }}</button>
     </div>
     <p v-if="store.lastError" class="error">{{ store.lastError }}</p>
-    <p v-if="result" class="ok">기부 완료 · 익명화 저장됨 · 보상: {{ result.reward_type }}</p>
+    <p v-if="result" class="ok">공유 완료 · 익명화 저장됨 · 보상: {{ result.reward_type }}</p>
   </section>
 </template>
 

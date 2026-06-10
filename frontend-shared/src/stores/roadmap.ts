@@ -33,6 +33,13 @@ export interface Roadmap {
   // 003 US1(T017): AI 코칭 요약 + 사용 경로. 폴백 시에도 자연스러운 요약을 제공(오류 아님).
   ai_source?: AiSource;
   ai_summary?: string;
+  // 004 US4(G3): 추천 근거(평이 설명) + '가중치' 풀이.
+  rationale?: {
+    basis: 'personalized' | 'general_guide';
+    sample_size: number;
+    explanation: string;
+    weight_note: string;
+  };
 }
 
 export const useRoadmapStore = defineStore('roadmap', () => {

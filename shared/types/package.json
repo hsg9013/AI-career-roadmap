@@ -8,7 +8,8 @@
   "scripts": {
     "gen:base": "openapi-typescript ../../specs/001-ai-career-roadmap/contracts/openapi.yaml -o ./src/openapi.d.ts",
     "gen:003": "openapi-typescript ../../specs/003-intent-specify/contracts/openapi.yaml -o ./src/openapi-003.d.ts",
-    "gen": "pnpm gen:base && pnpm gen:003",
+    "gen:004": "openapi-typescript ../../specs/004-intent-specify/contracts/openapi.yaml -o ./src/openapi-004.d.ts",
+    "gen": "pnpm gen:base && pnpm gen:003 && pnpm gen:004",
     "build": "tsc -p tsconfig.json"
   },
   "devDependencies": {

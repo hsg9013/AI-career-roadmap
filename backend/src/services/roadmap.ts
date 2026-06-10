@@ -54,6 +54,31 @@ export interface Roadmap {
   // 003 US1(T017/T021): AI 코칭 요약 + 사용 경로. AI 실패·무키·예산초과 시 규칙 기반 요약으로 폴백.
   ai_source: AiSource;
   ai_summary: string;
+  // 004 US4/G3: 추천 근거(평이 설명) + '가중치' 풀이.
+  rationale: RoadmapRationale;
+}
+
+export interface RoadmapRationale {
+  basis: 'personalized' | 'general_guide';
+  sample_size: number;
+  explanation: string;
+  weight_note: string;
+}
+
+// 004 US4/G3: source/표본수로 사용자에게 보일 평이한 추천 근거 생성.
+export function buildRoadmapRationale(
+  source: RoadmapSource,
+  cohortSize: number,
+  jobRole: string,
+): RoadmapRationale {
+  const basis: RoadmapRationale['basis'] = source === 'cohort' ? 'personalized' : 'general_guide';
+  const explanation =
+    basis === 'personalized'
+      ? `같은 직무(${jobRole}) 합격 선배 ${cohortSize}명의 경로와 직무 요구역량 비중을 종합해 시기별로 추천했습니다.`
+      : `해당 조건의 합격 선배 표본이 최소 기준(5명) 미만이라 직무 요구역량 기준 일반 가이드를 제공합니다. 활동·스펙을 더 입력하면 개인화 추천 정확도가 올라갑니다.`;
+  const weight_note =
+    `'가중치'는 직무에서 더 중요한 역량일수록 추천에 더 크게 반영된다는 의미입니다(값이 높을수록 우선순위가 높음).`;
+  return { basis, sample_size: cohortSize, explanation, weight_note };
 }
 
 interface TargetJobRow {
@@ -402,7 +427,8 @@ export async function generateRoadmap(userId: number, targetJobId: number): Prom
 
   await invalidate(latestCacheKey(userId, targetJobId));
   await track(userId, 'roadmap_generated', { target_job_id: targetJobId, source: roadmapBase.source });
-  return { ...roadmapBase, ai_source, ai_summary };
+  const rationale = buildRoadmapRationale(roadmapBase.source, roadmapBase.cohort_size, job_role);
+  return { ...roadmapBase, ai_source, ai_summary, rationale };
 }
 
 // FR-006: 추천 거부 — 항목 상태 변경 + 거부 이력 기록(다음 생성에서 제외·하향)
@@ -511,6 +537,7 @@ async function loadLatestRoadmap(userId: number, targetJobId: number): Promise<R
       items,
       ai_source: 'fallback_rule',
       ai_summary: ruleRoadmapSummary(jobRole, items, null),
+      rationale: buildRoadmapRationale(r.source, r.cohort_size, jobRole),
     };
   } finally {
     conn.release();

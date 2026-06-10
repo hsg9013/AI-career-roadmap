@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { onMounted, computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useStudentStore, GapDiagnosisChart, type TargetJob } from 'frontend-shared';
+import { useStudentStore, useMembershipStore, GapDiagnosisChart, type TargetJob } from 'frontend-shared';
 
 // T056 Dashboard — 갭 진단 결과를 직무별로 표시. 활동/직무 미설정 시 온보딩으로 유도.
+// 004 US7/US8: 추천 채용 광고·제휴 배너(동의·플래그 기준, 미동의/off 시 자동 빈 목록).
 
 const router = useRouter();
 const student = useStudentStore();
+const market = useMembershipStore();
 const triggering = ref(false);
+
+function openBanner(id: number, url: string): void {
+  void market.trackBanner(id, 'click');
+  window.open(url, '_blank', 'noopener');
+}
 
 const selectedJobId = ref<number | null>(null);
 
@@ -20,6 +27,8 @@ onMounted(async () => {
   const first = student.targetJobs[0]!;
   selectedJobId.value = first.id;
   await student.fetchLatestDiagnosis(first.id);
+  void market.fetchAds();
+  void market.fetchBanners();
 });
 
 const selectedDiagnosis = computed(() =>
@@ -80,6 +89,26 @@ async function rerunDiagnosis(): Promise<void> {
 
     <p v-if="student.lastError" class="err">{{ student.lastError }}</p>
 
+    <div v-if="market.recommendedAds.length" class="promo">
+      <h3>추천 채용·인턴십 <span class="ad-tag">광고</span></h3>
+      <ul class="promo-list">
+        <li v-for="ad in market.recommendedAds" :key="ad.id" @click="market.trackBanner(ad.id, 'click')">
+          <span class="title">{{ ad.title }}</span>
+          <span class="muted">{{ ad.industry_code }} / {{ ad.job_role_code }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <div v-if="market.banners.length" class="promo">
+      <h3>교육·자격증 제휴 혜택 <span class="ad-tag">광고/제휴</span></h3>
+      <ul class="promo-list">
+        <li v-for="b in market.banners" :key="b.id" @click="openBanner(b.id, b.landing_url)">
+          <span class="title">{{ b.title }}</span>
+          <span v-if="b.discount_text" class="discount">{{ b.discount_text }}</span>
+        </li>
+      </ul>
+    </div>
+
     <p class="footer">
       <router-link to="/onboarding">목표 직무 변경하기</router-link>
     </p>
@@ -107,4 +136,12 @@ async function rerunDiagnosis(): Promise<void> {
 .rerun:disabled { opacity: 0.6; cursor: not-allowed; }
 .footer { margin-top: 2rem; font-size: 0.9rem; text-align: center; }
 .err { color: #b91c1c; margin-top: 1rem; }
+.promo { margin-top: 1.5rem; border: 1px solid #e5e7eb; border-radius: 10px; padding: 0.9rem 1.1rem; }
+.promo h3 { margin: 0 0 0.5rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+.ad-tag { font-size: 0.68rem; font-weight: 700; color: #6b7280; background: #f3f4f6; border-radius: 999px; padding: 0.1rem 0.45rem; }
+.promo-list { list-style: none; padding: 0; margin: 0; }
+.promo-list li { display: flex; align-items: center; gap: 0.7rem; padding: 0.45rem 0; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
+.promo-list .title { font-weight: 500; }
+.promo-list .muted { margin-left: auto; }
+.promo-list .discount { margin-left: auto; color: #b45309; font-size: 0.85rem; }
 </style>

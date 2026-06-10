@@ -17,9 +17,10 @@ export const submitBodySchema = z.object({
 });
 export const feedbackParamsSchema = z.object({ submissionId: z.coerce.number().int().positive() });
 
-export async function listHandler(_req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function listHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    res.status(200).json(await listMissions());
+    // 004 US3/G2: 학생 목표 직무 기준으로 미션 필터(멘토 출제 우선)
+    res.status(200).json(await listMissions(userId(req)));
   } catch (err) {
     next(err);
   }

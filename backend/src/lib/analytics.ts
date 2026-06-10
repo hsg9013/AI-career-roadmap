@@ -14,7 +14,9 @@ export type AnalyticsEvent =
   | 'mission_submitted'
   | 'payment_converted'
   | 'membership_canceled'
-  | 'revisit';
+  | 'revisit'
+  // 004 (T043 / analyze C1): 활동·스펙 입력 KPI (SC-001/002)
+  | 'activity_recorded';
 
 export async function track(
   userId: number | null,

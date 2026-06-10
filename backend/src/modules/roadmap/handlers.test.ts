@@ -22,6 +22,7 @@ async function setTargetJobs(): Promise<void> {
     .send([
       { industry_code: 'IT', job_role_code: 'backend', priority: 1 },
       { industry_code: 'IT', job_role_code: 'frontend', priority: 2 },
+      { industry_code: 'IT', job_role_code: 'data', priority: 3 },
     ])
     .expect(200);
 }
@@ -75,8 +76,10 @@ describe('POST /v1/roadmap (cohort path)', () => {
 });
 
 describe('POST /v1/roadmap (fallback path)', () => {
-  it('IT/frontend y4plus(<5)은 폴백 + 안내문구를 반환한다', async () => {
-    const id = await targetJobId('frontend');
+  it('학년 코호트 표본 부족(<5) 직무는 폴백 + 안내문구를 반환한다', async () => {
+    // 004: 표본 시드(G6)는 직무당 10건을 3개 학년대로 분산하므로, 갓 채워진 직무(IT/data)의
+    // y4plus 코호트는 <5(부족) → 직무 전체 경로로 폴백. 공유 데이터 변경 없이 결정적 검증.
+    const id = await targetJobId('data');
     const res = await request(app)
       .post('/v1/roadmap')
       .set('Authorization', `Bearer ${token}`)

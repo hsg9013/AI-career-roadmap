@@ -45,6 +45,18 @@ const EnvSchema = z.object({
   // 003(US1): 일일 토큰 예산. 0 = 가드 비활성(상한 없음). 초과 시 신규 AI 호출은 폴백(fallback_reason=budget).
   AI_DAILY_TOKEN_BUDGET: z.coerce.number().int().nonnegative().default(0),
 
+  // 004(US7/US8): 광고·제휴 기능 토글 — 점진 활성화(기본 off). 'true'/'1' 일 때만 on.
+  ADS_ENABLED: z
+    .string()
+    .optional()
+    .default('false')
+    .transform((v) => v === 'true' || v === '1'),
+  AFFILIATE_ENABLED: z
+    .string()
+    .optional()
+    .default('false')
+    .transform((v) => v === 'true' || v === '1'),
+
   PORTONE_IMP_KEY: z.string().optional().default(''),
   PORTONE_IMP_SECRET: z.string().optional().default(''),
   PORTONE_PAYOUTS_API_KEY: z.string().optional().default(''),

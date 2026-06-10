@@ -1,14 +1,25 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { usePaymentsStore } from 'frontend-shared';
+import { ref, computed, onMounted } from 'vue';
+import { usePaymentsStore, useMembershipStore } from 'frontend-shared';
 
 // US3/US8 멤버십 결제 (student). 결제 승인 시 멤버십 활성화 + 영수증 표시.
 // 실연동(PortOne)은 pending+redirect → 결제창; dev 무키는 즉시 paid.
+// 004 US6: 무료/프리미엄 비교표 + 실무 단건 과금.
 
 const store = usePaymentsStore();
+const market = useMembershipStore();
 const amount = ref(9900);
 
 const result = computed(() => store.result);
+
+onMounted(() => {
+  void market.fetchTiers();
+  void market.fetchPaidServices();
+});
+
+async function orderService(code: string): Promise<void> {
+  await market.orderPaidService(code).catch(() => undefined);
+}
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '결제 진행 중',
@@ -31,8 +42,18 @@ async function refresh(): Promise<void> {
 <template>
   <section class="membership">
     <header><h2>멤버십</h2>
-      <p class="muted">유료 멤버십으로 전체 기능을 이용하세요.</p>
+      <p class="muted">무료와 프리미엄의 차이를 비교하고 업그레이드하세요.</p>
     </header>
+
+    <div v-if="market.tiers.length" class="tiers">
+      <div v-for="t in market.tiers" :key="t.code" class="tier" :class="t.code">
+        <h3>{{ t.name }} <span v-if="t.price_month" class="price-tag">₩{{ t.price_month.toLocaleString() }}/월</span><span v-else class="price-tag">무료</span></h3>
+        <ul>
+          <li v-for="f in t.features" :key="f">✓ {{ f }}</li>
+        </ul>
+      </div>
+    </div>
+
     <div class="plan">
       <h3>스탠다드</h3>
       <p class="price">₩<input v-model.number="amount" type="number" /> / 월</p>
@@ -57,6 +78,18 @@ async function refresh(): Promise<void> {
         </li>
       </ul>
     </div>
+
+    <div v-if="market.paidServices.length" class="paid">
+      <h3>실무 단건 서비스</h3>
+      <p class="muted">필요한 서비스만 건당 결제로 이용할 수 있습니다.</p>
+      <ul class="svc">
+        <li v-for="s in market.paidServices" :key="s.code">
+          <span>{{ s.name }}</span>
+          <span class="fee">₩{{ s.fee.toLocaleString() }}</span>
+          <button class="ghost" @click="orderService(s.code)">주문</button>
+        </li>
+      </ul>
+    </div>
   </section>
 </template>
 
@@ -75,4 +108,15 @@ async function refresh(): Promise<void> {
 .receipt .detail { list-style: none; padding: 0; margin: 0.5rem 0 0; font-size: 0.82rem; }
 .receipt a { color: #2563eb; }
 .link { background: none; border: 0; color: #2563eb; cursor: pointer; padding: 0; text-decoration: underline; font: inherit; }
+.tiers { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+.tier { border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem 1.2rem; }
+.tier.premium { border-color: #c7d2fe; background: #eef2ff; }
+.tier h3 { margin: 0 0 0.6rem; display: flex; justify-content: space-between; align-items: baseline; }
+.price-tag { font-size: 0.85rem; color: #4338ca; }
+.tier ul { list-style: none; padding: 0; margin: 0; font-size: 0.88rem; line-height: 1.7; }
+.paid { margin-top: 1.4rem; border-top: 1px solid #e5e7eb; padding-top: 1rem; }
+.svc { list-style: none; padding: 0; margin: 0.6rem 0 0; }
+.svc li { display: flex; align-items: center; gap: 0.8rem; padding: 0.4rem 0; border-bottom: 1px solid #f3f4f6; }
+.svc .fee { margin-left: auto; color: #374151; }
+.ghost { background: #fff; border: 1px solid #d1d5db; border-radius: 8px; padding: 0.35rem 0.8rem; cursor: pointer; }
 </style>

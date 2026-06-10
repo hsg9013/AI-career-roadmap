@@ -26,6 +26,11 @@ import consentRouter from './modules/consent/router.js';
 import catalogRouter from './modules/catalog/router.js';
 import opsRouter from './modules/ops/router.js';
 import feedsRouter from './modules/feeds/router.js';
+import membershipRouter from './modules/membership/router.js';
+import profileRouter from './modules/profile/router.js';
+import adsRouter from './modules/ads/router.js';
+import paidServicesRouter from './modules/paid-services/router.js';
+import { partnersRouter, adminPartnersRouter, adminLicensesRouter } from './modules/partners/router.js';
 
 // T035: 모든 미들웨어·라우터 와이어링
 
@@ -90,6 +95,13 @@ export function createApp(): Express {
   v1.use('/feeds', feedsRouter);
   v1.use('/auth', rateLimit({ windowSeconds: 60, max: 30, keyPrefix: 'rl:auth' }), authRouter);
   v1.use('/students/me/match-consent', matchConsentRouter);
+  v1.use('/students/me/profile-completeness', profileRouter);
+  v1.use('/membership', membershipRouter);
+  v1.use('/ads', adsRouter);
+  v1.use('/paid-services', paidServicesRouter);
+  v1.use('/partners', partnersRouter);
+  v1.use('/admin/partners', adminPartnersRouter);
+  v1.use('/admin/licenses', adminLicensesRouter);
   v1.use('/students', studentsRouter);
   v1.use('/activities', activitiesRouter);
   v1.use('/gap-diagnosis', gapDiagnosisRouter);

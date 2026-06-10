@@ -1,0 +1,236 @@
+openapi: 3.0.3
+info:
+  title: AI 커리어 로드맵 플랫폼 API — 004 델타 (가치사슬 앞단·생태계·수익)
+  version: 0.4.0
+  description: >
+    003 OpenAPI 위에 004 신규/확장 엔드포인트만 기술한 델타. 기존 인증(JWT)·에러 포맷·
+    네트워크 표준(servers)을 계승한다. shared/types 는 base + 004 델타로 생성.
+servers:
+  - url: https://p16.sumzip.com/api/v1
+  - url: http://localhost:9536/v1
+tags:
+  - name: credentials
+  - name: activities
+  - name: missions
+  - name: roadmap
+  - name: membership
+  - name: paid-services
+  - name: ads
+  - name: partners
+  - name: licenses
+
+paths:
+  # ── G1 활동·스펙 기록 ──
+  /students/me/credentials:
+    get:
+      tags: [credentials]
+      summary: 내 보유 스펙 목록
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+    post:
+      tags: [credentials]
+      summary: 보유 스펙 등록(수기 입력)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CredentialInput' }
+      responses: { '201': { description: Created } }
+  /students/me/credentials/{id}:
+    put:
+      tags: [credentials]
+      summary: 보유 스펙 수정
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [credentials]
+      summary: 보유 스펙 삭제
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses: { '204': { description: No Content } }
+  /students/me/profile-completeness:
+    get:
+      tags: [activities]
+      summary: 활동·스펙 입력 충실도(문서·진단 전 안내용)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProfileCompleteness' }
+
+  # ── G2 직무 맞춤 미션 ──
+  /missions/for-job:
+    get:
+      tags: [missions]
+      summary: 선택 직무에 맞는 미션(멘토 출제 우선, 없으면 기본 세트≥3)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: industry_code, in: query, required: true, schema: { type: string } }
+        - { name: job_role_code, in: query, required: true, schema: { type: string } }
+      responses: { '200': { description: OK } }
+
+  # ── G3 로드맵 설명가능성 ──
+  /roadmap/latest:
+    get:
+      tags: [roadmap]
+      summary: 최신 로드맵 + 추천 근거(rationale) 포함
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: target_job_id, in: query, required: true, schema: { type: integer } }]
+      responses:
+        '200':
+          description: OK (기존 로드맵 + rationale 필드 부가)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoadmapWithRationale' }
+
+  # ── G5 멤버십·실무 과금 ──
+  /membership/tiers:
+    get:
+      tags: [membership]
+      summary: 멤버십 등급·기능 비교표(무료/프리미엄)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/MembershipTier' } }
+  /membership/subscribe:
+    post:
+      tags: [membership]
+      summary: 프리미엄 구독 결제 시작(003 결제 흐름 연계)
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK(결제 세션/리다이렉트) } }
+  /paid-services:
+    get:
+      tags: [paid-services]
+      summary: 실무 단건 서비스·수수료 목록
+      responses: { '200': { description: OK } }
+  /paid-services/{code}/order:
+    post:
+      tags: [paid-services]
+      summary: 실무 단건 서비스 주문(건당 수수료)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: code, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: OK } }
+
+  # ── G5 타겟 채용 광고 ──
+  /ads/recommended-jobs:
+    get:
+      tags: [ads]
+      summary: 추천 채용·인턴십(학생 직무·동의 기준, 미동의 시 빈 목록)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/JobAd' } }
+  /ads/{adId}/impression:
+    post:
+      tags: [ads]
+      summary: 광고 노출 집계(과금)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: adId, in: path, required: true, schema: { type: integer } }]
+      responses: { '204': { description: No Content } }
+
+  # ── G5 제휴 배너 ──
+  /partners/banners:
+    get:
+      tags: [partners]
+      summary: 외부 교육 제휴 배너('광고/제휴' 표기)
+      responses: { '200': { description: OK } }
+  /partners/banners/{id}/track:
+    post:
+      tags: [partners]
+      summary: 배너 클릭/전환 집계(제휴 수수료 산정)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, properties: { event: { type: string, enum: [click, convert] } } }
+      responses: { '204': { description: No Content } }
+
+  # ── G4 파트너십 / G5 라이선스 (운영자/파트너) ──
+  /admin/partners:
+    post:
+      tags: [partners]
+      summary: 파트너 등록(운영자 수동, 역할 계정 발급)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PartnerInput' }
+      responses: { '201': { description: Created } }
+  /university/students-overview:
+    get:
+      tags: [licenses]
+      summary: 대학 학생 관리 대시보드(라이선스·동의 범위별 통계/개인)
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+  /admin/licenses:
+    post:
+      tags: [licenses]
+      summary: 라이선스 계약 등록(대학 SaaS·기업 채용 수수료)
+      security: [{ bearerAuth: [] }]
+      responses: { '201': { description: Created } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    CredentialInput:
+      type: object
+      required: [kind, title]
+      properties:
+        kind: { type: string, enum: [certificate, award, internship, part_time, other] }
+        title: { type: string }
+        issuer: { type: string, nullable: true }
+        acquired_on: { type: string, format: date, nullable: true }
+        detail: { type: object, nullable: true }
+    ProfileCompleteness:
+      type: object
+      properties:
+        activities_count: { type: integer }
+        credentials_count: { type: integer }
+        ready_for_documents: { type: boolean }
+        next_recommended_input: { type: string }
+    RoadmapWithRationale:
+      type: object
+      properties:
+        items: { type: array, items: { type: object } }
+        ai_source: { type: string, enum: [ai, fallback_rule] }
+        rationale:
+          type: object
+          properties:
+            basis: { type: string, enum: [personalized, general_guide] }
+            sample_size: { type: integer }
+            explanation: { type: string }
+            weight_note: { type: string, description: "'가중치' 평이 설명" }
+    MembershipTier:
+      type: object
+      properties:
+        code: { type: string, enum: [free, premium] }
+        name: { type: string }
+        features: { type: array, items: { type: string } }
+        price_month: { type: integer, nullable: true }
+    JobAd:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        company: { type: string }
+        industry_code: { type: string }
+        job_role_code: { type: string }
+        sponsored: { type: boolean, description: "true=광고 표기" }
+    PartnerInput:
+      type: object
+      required: [type, name]
+      properties:
+        type: { type: string, enum: [university, company, mentor_org, edu_platform, tech_partner] }
+        name: { type: string }
+        consent_scope: { type: string, enum: [none, stats, individual] }

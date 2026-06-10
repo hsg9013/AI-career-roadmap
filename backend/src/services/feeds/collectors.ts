@@ -89,5 +89,12 @@ export function getCollectors(): FeedCollector[] {
     makeCollector('partner-contest', 'contest', env.FEED_CONTEST_URL,
       ['전국 대학생 데이터 공모전', 'AI 아이디어 해커톤'],
       genericMapper('contest', 'partner-contest')),
+    // 004 US5/T024: 교육/활동 플랫폼 파트너 콘텐츠 연계(자격증·대외활동 정보)
+    makeCollector('partner-edu', 'certification', env.FEED_CERTIFICATION_URL,
+      ['제휴 교육 플랫폼: 클라우드 자격 과정', '제휴 어학원: 단기 토익 과정'],
+      genericMapper('certification', 'partner-edu')),
+    makeCollector('partner-activity', 'contest', env.FEED_CONTEST_URL,
+      ['제휴 대외활동: 글로벌 인턴십 프로그램', '제휴 공모전: UX 디자인 챌린지'],
+      genericMapper('contest', 'partner-activity')),
   ];
 }

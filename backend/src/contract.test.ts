@@ -45,6 +45,18 @@ const ROUTES: ContractRoute[] = [
   { method: 'post', path: '/v1/auth/school-email/verify' },
   { method: 'get', path: '/v1/auth/school-email/status' },
   { method: 'post', path: '/v1/auth/school-email/confirm', public: true },
+  // 004 델타 엔드포인트 (T040)
+  { method: 'get', path: '/v1/students/me/profile-completeness' },
+  { method: 'get', path: '/v1/membership/tiers', public: true },
+  { method: 'get', path: '/v1/membership/me' },
+  { method: 'get', path: '/v1/paid-services', public: true },
+  { method: 'post', path: '/v1/paid-services/mentoring/order' },
+  { method: 'get', path: '/v1/ads/recommended-jobs' },
+  { method: 'post', path: '/v1/ads/1/impression' },
+  { method: 'get', path: '/v1/partners/banners', public: true },
+  { method: 'post', path: '/v1/partners/banners/1/track', public: true },
+  { method: 'post', path: '/v1/admin/partners' },
+  { method: 'post', path: '/v1/admin/licenses' },
 ];
 
 let app: Express;

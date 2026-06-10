@@ -95,6 +95,13 @@ async function reject(item: RoadmapItem): Promise<void> {
         <p>{{ current.ai_summary }}</p>
       </div>
       <p v-if="current.notice" class="notice">⚠ {{ current.notice }}</p>
+      <div v-if="current.rationale" class="rationale">
+        <span class="rationale-badge" :class="current.rationale.basis">
+          {{ current.rationale.basis === 'personalized' ? '맞춤 추천' : '일반 가이드' }}
+        </span>
+        <p class="why">{{ current.rationale.explanation }}</p>
+        <p class="weight muted">ℹ {{ current.rationale.weight_note }}</p>
+      </div>
       <p class="meta muted">
         근거: {{ current.source === 'cohort' ? '선배 코호트' : '직무 요구역량 기반' }}
         · 선배 표본 {{ current.cohort_size }}명
@@ -133,6 +140,12 @@ async function reject(item: RoadmapItem): Promise<void> {
 .tabs button { border: 1px solid #d1d5db; background: #fff; border-radius: 999px; padding: 0.35rem 0.9rem; cursor: pointer; }
 .tabs button.active { background: #111827; color: #fff; border-color: #111827; }
 .notice { background: #fef3c7; color: #92400e; padding: 0.6rem 0.8rem; border-radius: 8px; }
+.rationale { border: 1px solid #e5e7eb; border-radius: 10px; padding: 0.7rem 0.9rem; margin: 0.6rem 0; }
+.rationale-badge { font-size: 0.72rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 999px; }
+.rationale-badge.personalized { background: #dcfce7; color: #166534; }
+.rationale-badge.general_guide { background: #f3f4f6; color: #4b5563; }
+.rationale .why { margin: 0.4rem 0 0.2rem; }
+.rationale .weight { font-size: 0.8rem; }
 .ai-summary { background: #eff6ff; border-left: 3px solid #2563eb; border-radius: 6px; padding: 0.7rem 0.9rem; margin: 0.8rem 0; }
 .ai-summary p { margin: 0.4rem 0 0; color: #1e3a8a; }
 .ai-badge { font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 999px; }

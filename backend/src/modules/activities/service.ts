@@ -2,6 +2,7 @@ import type { PoolConnection } from 'mysql2/promise';
 import { getPool, withTransaction } from '../../db/pool.js';
 import { HttpError } from '../../middlewares/errorHandler.js';
 import { queues } from '../../queues/index.js';
+import { track } from '../../lib/analytics.js';
 
 // T048: 활동(activities) CRUD + 페이징 + 수동 태그
 // 자동 태깅은 비동기 큐(recommendation-precompute) 로 enqueue 만 한다.
@@ -16,6 +17,7 @@ export const ACTIVITY_CATEGORIES = [
   'internship',
   'award',
   'certification',
+  'part_time', // 004(US1/G1): 아르바이트 경험
 ] as const;
 export type ActivityCategory = (typeof ACTIVITY_CATEGORIES)[number];
 
@@ -230,6 +232,7 @@ export async function createActivity(userId: number, input: ActivityInput): Prom
     const created = await fetchActivity(conn, studentId, id);
     if (!created) throw new HttpError(500, 'INTERNAL_ERROR', 'Failed to fetch created activity');
     void enqueueAutoTagging(id, studentId);
+    void track(userId, 'activity_recorded', { category: input.category }); // 004 T043 KPI(SC-001)
     return created;
   });
 }

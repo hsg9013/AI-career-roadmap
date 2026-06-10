@@ -90,7 +90,39 @@ export const useAdminStore = defineStore('admin', () => {
       loading.value = false;
     }
   }
-  return { usage, loading, lastError, fetchUsage };
+  // 004 US5/US9: 파트너 등록·라이선스 등록(운영자)
+  const lastPartnerId = ref<number | null>(null);
+  async function createPartner(input: {
+    type: 'university' | 'company' | 'mentor_org' | 'edu_platform' | 'tech_partner';
+    name: string;
+    consent_scope?: 'none' | 'stats' | 'individual';
+  }): Promise<void> {
+    lastError.value = null;
+    try {
+      const { data } = await getApi().post('/admin/partners', input);
+      lastPartnerId.value = (data as { id: number }).id;
+    } catch (e) {
+      lastError.value = err(e);
+      throw e;
+    }
+  }
+  async function createLicense(input: {
+    partner_id: number;
+    type: 'university_saas' | 'company_recruit';
+    scope?: 'stats' | 'individual';
+    seats?: number;
+    fee_year?: number;
+    commission_rate?: number;
+  }): Promise<void> {
+    lastError.value = null;
+    try {
+      await getApi().post('/admin/licenses', input);
+    } catch (e) {
+      lastError.value = err(e);
+      throw e;
+    }
+  }
+  return { usage, loading, lastError, lastPartnerId, fetchUsage, createPartner, createLicense };
 });
 
 // US8/US3 결제·정산
@@ -191,4 +223,178 @@ export const useAlumniStore = defineStore('alumni', () => {
     }
   }
   return { result, loading, lastError, donate };
+});
+
+// 004 US6/US7/US8: 멤버십 등급·실무 과금·추천 광고·제휴 배너
+export interface MembershipTier {
+  code: 'free' | 'premium';
+  name: string;
+  price_month: number | null;
+  features: string[];
+}
+export interface PaidServiceItem {
+  code: string;
+  name: string;
+  fee: number;
+}
+export interface JobAdItem {
+  id: number;
+  title: string;
+  company_id: number | null;
+  industry_code: string;
+  job_role_code: string;
+  sponsored: boolean;
+}
+export interface BannerItem {
+  id: number;
+  title: string;
+  image_url: string | null;
+  landing_url: string;
+  discount_text: string | null;
+  sponsored: boolean;
+}
+
+export const useMembershipStore = defineStore('membership', () => {
+  const tiers = ref<MembershipTier[]>([]);
+  const myTier = ref<string | null>(null);
+  const paidServices = ref<PaidServiceItem[]>([]);
+  const recommendedAds = ref<JobAdItem[]>([]);
+  const banners = ref<BannerItem[]>([]);
+  const loading = ref(false);
+  const lastError = ref<string | null>(null);
+
+  async function fetchTiers(): Promise<void> {
+    try {
+      const { data } = await getApi().get('/membership/tiers');
+      tiers.value = (data as { tiers: MembershipTier[] }).tiers;
+    } catch (e) {
+      lastError.value = err(e);
+    }
+  }
+  async function fetchMyTier(): Promise<void> {
+    try {
+      const { data } = await getApi().get('/membership/me');
+      myTier.value = (data as { tier: string }).tier;
+    } catch (e) {
+      lastError.value = err(e);
+    }
+  }
+  async function fetchPaidServices(): Promise<void> {
+    try {
+      const { data } = await getApi().get('/paid-services');
+      paidServices.value = (data as { items: PaidServiceItem[] }).items;
+    } catch (e) {
+      lastError.value = err(e);
+    }
+  }
+  async function orderPaidService(code: string): Promise<void> {
+    await getApi().post(`/paid-services/${code}/order`, {});
+  }
+  async function fetchAds(): Promise<void> {
+    try {
+      const { data } = await getApi().get('/ads/recommended-jobs');
+      recommendedAds.value = (data as { items: JobAdItem[] }).items;
+    } catch (e) {
+      lastError.value = err(e);
+    }
+  }
+  async function fetchBanners(): Promise<void> {
+    try {
+      const { data } = await getApi().get('/partners/banners');
+      banners.value = (data as { items: BannerItem[] }).items;
+    } catch (e) {
+      lastError.value = err(e);
+    }
+  }
+  async function trackBanner(id: number, event: 'click' | 'convert'): Promise<void> {
+    try {
+      await getApi().post(`/partners/banners/${id}/track`, { event });
+    } catch {
+      /* 집계 실패는 사용자 흐름을 막지 않음 */
+    }
+  }
+
+  return {
+    tiers, myTier, paidServices, recommendedAds, banners, loading, lastError,
+    fetchTiers, fetchMyTier, fetchPaidServices, orderPaidService, fetchAds, fetchBanners, trackBanner,
+  };
+});
+
+// 004 US1/G1: 활동·스펙 입력(수기). category 로 활동/스펙 모두 표현(part_time 포함).
+export type ActivityCategory =
+  | 'course' | 'project' | 'club' | 'volunteer' | 'contest' | 'external'
+  | 'internship' | 'award' | 'certification' | 'part_time';
+
+export interface ActivityItem {
+  id: number;
+  category: ActivityCategory;
+  title: string;
+  description: string | null;
+  started_at: string;
+  ended_at: string | null;
+  outcome: string | null;
+}
+
+export interface ProfileCompleteness {
+  activities_count: number;
+  credentials_count: number;
+  ready_for_documents: boolean;
+  next_recommended_input: string | null;
+}
+
+export const useActivitiesStore = defineStore('activities', () => {
+  const items = ref<ActivityItem[]>([]);
+  const completeness = ref<ProfileCompleteness | null>(null);
+  const loading = ref(false);
+  const lastError = ref<string | null>(null);
+
+  async function fetchList(): Promise<void> {
+    loading.value = true;
+    lastError.value = null;
+    try {
+      const { data } = await getApi().get('/activities');
+      items.value = (data as { items: ActivityItem[] }).items;
+    } catch (e) {
+      lastError.value = err(e);
+    } finally {
+      loading.value = false;
+    }
+  }
+  async function fetchCompleteness(): Promise<void> {
+    try {
+      const { data } = await getApi().get('/students/me/profile-completeness');
+      completeness.value = data as ProfileCompleteness;
+    } catch (e) {
+      lastError.value = err(e);
+    }
+  }
+  async function create(input: {
+    category: ActivityCategory;
+    title: string;
+    started_at: string;
+    description?: string;
+    ended_at?: string;
+    outcome?: string;
+  }): Promise<void> {
+    lastError.value = null;
+    try {
+      await getApi().post('/activities', input);
+      await fetchList();
+      await fetchCompleteness();
+    } catch (e) {
+      lastError.value = err(e);
+      throw e;
+    }
+  }
+  async function remove(id: number): Promise<void> {
+    try {
+      await getApi().delete(`/activities/${id}`);
+      await fetchList();
+      await fetchCompleteness();
+    } catch (e) {
+      lastError.value = err(e);
+    }
+  }
+
+  return { items, completeness, loading, lastError, fetchList, fetchCompleteness, create, remove };
 });

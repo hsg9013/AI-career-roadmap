@@ -9,6 +9,9 @@ const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/home' },
   { path: '/home', component: () => import('../pages/Home.vue') },
   { path: '/login', name: 'login', component: () => import('../pages/Login.vue') },
+  // 004 US1/US6 (T013/T044): 활동·스펙·멤버십 모바일 동등 제공
+  { path: '/activities', component: () => import('../pages/Activities.vue'), meta: { requiresAuth: true } },
+  { path: '/membership', component: () => import('../pages/Membership.vue'), meta: { requiresAuth: true } },
 ];
 
 export const router = createRouter({
