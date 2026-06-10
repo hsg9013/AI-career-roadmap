@@ -345,8 +345,25 @@ export interface ProfileCompleteness {
 export const useActivitiesStore = defineStore('activities', () => {
   const items = ref<ActivityItem[]>([]);
   const completeness = ref<ProfileCompleteness | null>(null);
+  const suggestedSkills = ref<string[]>([]); // 004: 목표 직무 요구역량 키워드(태그 후보)
   const loading = ref(false);
   const lastError = ref<string | null>(null);
+
+  // 004: 활동에 붙일 역량 태그 후보 = 학생 1순위 목표 직무의 요구역량 키워드.
+  // 이 태그가 activity_tags 에 저장되어 갭 진단 점수에 반영된다.
+  async function fetchSuggestedSkills(): Promise<void> {
+    try {
+      const { data: tjs } = await getApi().get('/students/me/target-jobs');
+      const first = (tjs as Array<{ industry_code: string; job_role_code: string }>)[0];
+      if (!first) { suggestedSkills.value = []; return; }
+      const { data: jobs } = await getApi().get(`/catalog/industries/${first.industry_code}/jobs`);
+      const list = (jobs as { items?: Array<{ code: string; competencies?: string[] }> }).items ?? [];
+      const job = list.find((j) => j.code === first.job_role_code);
+      suggestedSkills.value = job?.competencies ?? [];
+    } catch (e) {
+      lastError.value = err(e);
+    }
+  }
 
   async function fetchList(): Promise<void> {
     loading.value = true;
@@ -375,6 +392,7 @@ export const useActivitiesStore = defineStore('activities', () => {
     description?: string;
     ended_at?: string;
     outcome?: string;
+    manual_tags?: string[];
   }): Promise<void> {
     lastError.value = null;
     try {
@@ -396,5 +414,5 @@ export const useActivitiesStore = defineStore('activities', () => {
     }
   }
 
-  return { items, completeness, loading, lastError, fetchList, fetchCompleteness, create, remove };
+  return { items, completeness, suggestedSkills, loading, lastError, fetchSuggestedSkills, fetchList, fetchCompleteness, create, remove };
 });

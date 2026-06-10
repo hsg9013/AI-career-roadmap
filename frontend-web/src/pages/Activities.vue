@@ -30,10 +30,18 @@ const form = ref<{ category: ActivityCategory; title: string; started_at: string
   started_at: '',
   outcome: '',
 });
+const selectedSkills = ref<string[]>([]); // 이 활동이 보여주는 역량(태그 → 진단 점수 반영)
+
+function toggleSkill(s: string): void {
+  const i = selectedSkills.value.indexOf(s);
+  if (i >= 0) selectedSkills.value.splice(i, 1);
+  else selectedSkills.value.push(s);
+}
 
 onMounted(() => {
   void store.fetchList();
   void store.fetchCompleteness();
+  void store.fetchSuggestedSkills();
 });
 
 async function add(): Promise<void> {
@@ -44,10 +52,12 @@ async function add(): Promise<void> {
       title: form.value.title,
       started_at: form.value.started_at,
       outcome: form.value.outcome || undefined,
+      manual_tags: selectedSkills.value.length ? [...selectedSkills.value] : undefined,
     })
     .then(() => {
       form.value.title = '';
       form.value.outcome = '';
+      selectedSkills.value = [];
     })
     .catch(() => undefined);
 }
@@ -77,6 +87,20 @@ async function add(): Promise<void> {
       <input v-model="form.started_at" type="date" />
       <input v-model="form.outcome" placeholder="성과(선택)" />
       <button :disabled="store.loading || !form.title || !form.started_at" @click="add">추가</button>
+    </div>
+
+    <div v-if="store.suggestedSkills.length" class="skills">
+      <span class="skills-label">이 활동이 보여주는 역량 <small>(선택 — 진단 점수에 반영됩니다)</small></span>
+      <div class="chips">
+        <button
+          v-for="s in store.suggestedSkills"
+          :key="s"
+          type="button"
+          class="chip"
+          :class="{ on: selectedSkills.includes(s) }"
+          @click="toggleSkill(s)"
+        >{{ s }}</button>
+      </div>
     </div>
     <p v-if="store.lastError" class="error">{{ store.lastError }}</p>
 
@@ -112,4 +136,10 @@ async function add(): Promise<void> {
 .date { margin-left: auto; }
 .del { background: none; border: 0; color: #b91c1c; cursor: pointer; }
 .empty { padding: 1rem 0; }
+.skills { margin-top: 0.7rem; }
+.skills-label { font-size: 0.85rem; color: #374151; }
+.skills-label small { color: #9ca3af; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+.chip { border: 1px solid #d1d5db; background: #fff; color: #374151; border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.82rem; cursor: pointer; }
+.chip.on { background: #2563eb; color: #fff; border-color: #2563eb; }
 </style>
