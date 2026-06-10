@@ -37,12 +37,12 @@ paths:
                   items:
                     type: array
                     items: { $ref: '#/components/schemas/Industry' }
-  /catalog/industries/{industryId}/jobs:
+  /catalog/industries/{industryCode}/jobs:
     get:
       tags: [catalog]
       summary: 산업별 직무 목록(키워드 포함)
       parameters:
-        - { name: industryId, in: path, required: true, schema: { type: integer } }
+        - { name: industryCode, in: path, required: true, schema: { type: string } }
       responses:
         '200':
           description: OK
@@ -140,6 +140,22 @@ paths:
             schema: { $ref: '#/components/schemas/NotificationSettings' }
       responses:
         '200': { description: OK }
+  /notifications/devices:
+    post:
+      tags: [notifications]
+      summary: 푸시 디바이스 토큰 등록(FCM/APNs)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platform, token]
+              properties:
+                platform: { type: string, enum: [ios, android, web] }
+                token: { type: string }
+      responses:
+        '201': { description: 등록됨 }
 
   # ── US5 외부 수집 피드 ──
   /feeds/items:
@@ -197,8 +213,39 @@ paths:
               properties:
                 email: { type: string, format: email }
       responses:
-        '202': { description: 인증 메일 발송 }
+        '202': { description: 인증 메일 발송(pending) }
         '422': { description: 비-.ac.kr 주소 거부 }
+  /auth/school-email/confirm:
+    post:
+      tags: [auth]
+      summary: 학교 이메일 인증 토큰 확정(이메일 링크)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200': { description: verified }
+        '410': { description: 토큰 만료 }
+  /auth/school-email/status:
+    get:
+      tags: [auth]
+      summary: 현재 사용자 학교 이메일 검증 상태
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [none, pending, verified, rejected] }
+                  email: { type: string, nullable: true }
 
   # ── US8 운영 안정성 관측 ──
   /ops/health:
@@ -218,6 +265,19 @@ paths:
                     type: object
                     additionalProperties: { type: string }
                   lastBackupAt: { type: string, format: date-time }
+  /ops/metrics:
+    get:
+      tags: [ops]
+      summary: 관측 대시보드 메트릭(관리자) — 폴백률·성공률·가용성·KPI
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OpsMetrics' }
+        '401': { description: 미인증 }
+        '403': { description: 관리자 아님 }
 
 components:
   schemas:
@@ -267,6 +327,46 @@ components:
         collectedAt: { type: string, format: date-time }
         freshness: { type: string, enum: [fresh, stale] }
         payload: { type: object, additionalProperties: true }
+    OpsMetrics:
+      type: object
+      description: 관측 대시보드 집계(폴백률·성공률·가용성·KPI). 분모 0 이면 rate=null.
+      properties:
+        ai:
+          type: object
+          properties:
+            total: { type: integer }
+            fallback: { type: integer }
+            fallbackRate: { type: number, nullable: true }
+            byReason: { type: object, additionalProperties: { type: integer } }
+        payments:
+          type: object
+          properties:
+            paid: { type: integer }
+            failed: { type: integer }
+            refunded: { type: integer }
+            canceled: { type: integer }
+            successRate: { type: number, nullable: true }
+        notifications:
+          type: object
+          properties:
+            sent: { type: integer }
+            failed: { type: integer }
+            skipped: { type: integer }
+            successRate: { type: number, nullable: true }
+        feeds:
+          type: object
+          properties:
+            runs: { type: integer }
+            success: { type: integer }
+            failed: { type: integer }
+            successRate: { type: number, nullable: true }
+            lastRunAt: { type: string, format: date-time, nullable: true }
+        availability:
+          type: object
+          properties:
+            openCriticalAlerts: { type: integer }
+            lastBackupAt: { type: string, format: date-time, nullable: true }
+        kpi: { type: object, additionalProperties: { type: integer } }
   securitySchemes:
     bearerAuth:
       type: http
