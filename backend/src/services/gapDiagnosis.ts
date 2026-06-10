@@ -1,6 +1,7 @@
 import type { PoolConnection } from 'mysql2/promise';
 import { getPool, withTransaction } from '../db/pool.js';
 import { HttpError } from '../middlewares/errorHandler.js';
+import { track } from '../lib/analytics.js';
 
 // T049: 갭 진단 알고리즘 + 스냅샷 저장
 //
@@ -122,9 +123,17 @@ export interface ComputeResult {
 }
 
 export async function diagnoseGap(userId: number, targetJobId: number): Promise<ComputeResult> {
-  return withTransaction(async (conn) => {
+  let isFirstDiagnosis = false;
+  const result = await withTransaction(async (conn) => {
     const tj = await loadTargetJob(conn, userId, targetJobId);
     const weights = await loadJobRequirements(conn, tj.industry_code, tj.job_role_code);
+
+    // 첫 진단 여부(SC-001/002 측정) — 저장 전 기존 스냅샷 존재 확인.
+    const [prior] = await conn.query(
+      'SELECT 1 FROM gap_diagnoses WHERE student_id = ? LIMIT 1',
+      [tj.student_id],
+    );
+    isFirstDiagnosis = (prior as unknown[]).length === 0;
 
     // 학생이 자기 프로필을 등록한 적 없으면 422 — FR-007 전제 (프로필 필수)
     const tags = await loadStudentTags(conn, tj.student_id);
@@ -202,6 +211,9 @@ export async function diagnoseGap(userId: number, targetJobId: number): Promise<
       job_role: `${tj.industry_code}/${tj.job_role_code}`,
     };
   });
+
+  if (isFirstDiagnosis) await track(userId, 'first_diagnosis', {});
+  return result;
 }
 
 export async function getLatestDiagnosis(

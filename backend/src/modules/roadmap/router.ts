@@ -9,6 +9,8 @@ import {
   rejectHandler,
   rejectParamsSchema,
   rejectBodySchema,
+  completeHandler,
+  itemParamsSchema,
 } from './handlers.js';
 
 const router: Router = Router();
@@ -22,5 +24,6 @@ router.post(
   validate({ params: rejectParamsSchema, body: rejectBodySchema }),
   rejectHandler,
 );
+router.post('/items/:itemId/complete', validate({ params: itemParamsSchema }), completeHandler);
 
 export default router;

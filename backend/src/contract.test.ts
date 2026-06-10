@@ -19,6 +19,7 @@ const ROUTES: ContractRoute[] = [
   { method: 'post', path: '/v1/gap-diagnosis' },
   { method: 'post', path: '/v1/roadmap' },
   { method: 'post', path: '/v1/roadmap/items/1/reject' },
+  { method: 'post', path: '/v1/roadmap/items/1/complete' },
   { method: 'post', path: '/v1/documents' },
   { method: 'put', path: '/v1/documents/1' },
   { method: 'post', path: '/v1/missions/1/submissions' },

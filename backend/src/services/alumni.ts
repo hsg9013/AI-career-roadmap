@@ -3,6 +3,9 @@ import { withTransaction } from '../db/pool.js';
 import { gradeBandFor } from './recommendation/kAnonymity.js';
 
 // T059: 선배 합격 경로 기부 — 쓰기 시 익명화(PII 비저장) + 보상 지급 (FR-018, R-3)
+// 003 US3(T026): 선배 정산을 settlement 원장에 적립(멘토와 동일 구조) — 데이터 기부 정액 보상.
+
+const ALUMNI_DONATION_REWARD = 10_000; // ₩ 선배 데이터 기부 정액 보상(정산 원장 적립액)
 
 export interface DonateActivity {
   period: string;
@@ -57,6 +60,14 @@ export async function donatePath(userId: number, input: DonateInput): Promise<Do
       `INSERT INTO alumni_rewards (alumni_user_id, reward_type, amount, alumni_path_id)
        VALUES (?, 'badge', NULL, ?)`,
       [userId, pathId],
+    );
+
+    // 003(T026): 선배 정산을 settlement 원장에 적립(basis=fixed). source_ref 로 멱등(경로당 1회).
+    await conn.query(
+      `INSERT INTO settlement (payee_user_id, basis, source_ref, amount, status)
+       VALUES (?, 'fixed', ?, ?, 'accrued')
+       ON DUPLICATE KEY UPDATE amount = VALUES(amount)`,
+      [userId, `alumni_donation:${pathId}`, ALUMNI_DONATION_REWARD],
     );
 
     return { alumni_path_id: pathId, reward_type: 'badge', anonymized: true };

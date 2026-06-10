@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { generateRoadmap, rejectItem, getLatestRoadmap } from '../../services/roadmap.js';
+import { generateRoadmap, rejectItem, completeItem, getLatestRoadmap } from '../../services/roadmap.js';
 import { HttpError } from '../../middlewares/errorHandler.js';
 
 // T027/T028: 로드맵 핸들러 (US2)
@@ -24,6 +24,8 @@ export const latestQuerySchema = z.object({
 export const rejectParamsSchema = z.object({
   itemId: z.coerce.number().int().positive(),
 });
+
+export const itemParamsSchema = rejectParamsSchema;
 
 export const rejectBodySchema = z.object({
   reason: z.string().max(200).optional(),
@@ -58,6 +60,17 @@ export async function rejectHandler(req: Request, res: Response, next: NextFunct
     const { itemId } = req.params as unknown as z.infer<typeof rejectParamsSchema>;
     const body = req.body as z.infer<typeof rejectBodySchema>;
     await rejectItem(userId(req), itemId, body.reason);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
+// 003: 로드맵 항목 완료(SC-003 측정).
+export async function completeHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { itemId } = req.params as unknown as z.infer<typeof itemParamsSchema>;
+    await completeItem(userId(req), itemId);
     res.status(204).send();
   } catch (err) {
     next(err);

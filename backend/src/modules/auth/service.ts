@@ -13,6 +13,7 @@ import {
   type AccessTokenClaims,
 } from '../../lib/jwt.js';
 import { HttpError } from '../../middlewares/errorHandler.js';
+import { track } from '../../lib/analytics.js';
 
 // T046: 인증 본 구현 — bcrypt(12), 5회 실패 잠금(Redis), refresh 회전(family).
 
@@ -72,6 +73,7 @@ export async function registerStudent(input: RegisterStudentInput): Promise<Regi
     );
 
     // 메일러는 T060+에서 연결. 현재는 플래그만 false.
+    await track(userId, 'signup', { role: 'student', method: 'email' });
     return { userId, emailVerificationSent: false };
   });
 }
@@ -159,6 +161,8 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   }
 
   await clearLockout(email);
+  // 재방문 지표(SC-009) — 로그인 성공 1건당 1회.
+  await track(user.id, 'revisit', { method: 'password' });
   return issueSession({ id: user.id, role: user.role });
 }
 

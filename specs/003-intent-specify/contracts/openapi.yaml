@@ -76,6 +76,16 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AiResult' }
+  /roadmap/items/{itemId}/complete:
+    post:
+      tags: [ai]
+      summary: 로드맵 항목 완료 표시(SC-003 측정 — 003 보강)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: itemId, in: path, required: true, schema: { type: integer } }
+      responses:
+        '204': { description: 완료 처리 }
+        '404': { description: 항목 없음 }
 
   # ── US3 결제·정산 ──
   /payments/checkout:

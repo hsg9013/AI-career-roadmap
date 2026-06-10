@@ -12,6 +12,7 @@ import {
 } from './recommendation/kAnonymity.js';
 import { runInference, type AiSource } from './ai/infer.js';
 import { logger } from '../lib/logger.js';
+import { track } from '../lib/analytics.js';
 
 // T026: 선배 경로 기반 합격 로드맵 생성 (FR-005) + 거부 반영 (FR-006), k-익명성 게이트 (FR-019)
 //
@@ -400,6 +401,7 @@ export async function generateRoadmap(userId: number, targetJobId: number): Prom
   );
 
   await invalidate(latestCacheKey(userId, targetJobId));
+  await track(userId, 'roadmap_generated', { target_job_id: targetJobId, source: roadmapBase.source });
   return { ...roadmapBase, ai_source, ai_summary };
 }
 
@@ -432,6 +434,27 @@ export async function rejectItem(
     return row.target_job_id;
   });
   await invalidate(latestCacheKey(userId, targetJobId));
+  await track(userId, 'recommendation_rejected', { item_id: itemId });
+}
+
+// 003: 로드맵 항목 완료 표시(SC-003 "로드맵 1개라도 완료 70%" 측정). 본인 항목만.
+export async function completeItem(userId: number, itemId: number): Promise<void> {
+  const targetJobId = await withTransaction(async (conn) => {
+    const [rows] = await conn.query(
+      `SELECT ri.id, r.target_job_id
+       FROM roadmap_items ri
+       JOIN roadmaps r ON r.id = ri.roadmap_id
+       JOIN students s ON s.id = r.student_id
+       WHERE ri.id = ? AND s.user_id = ? LIMIT 1`,
+      [itemId, userId],
+    );
+    const row = (rows as Array<{ id: number; target_job_id: number }>)[0];
+    if (!row) throw new HttpError(404, 'ROADMAP_ITEM_NOT_FOUND', 'Roadmap item not found for this user');
+    await conn.query(`UPDATE roadmap_items SET status = 'done' WHERE id = ?`, [itemId]);
+    return row.target_job_id;
+  });
+  await invalidate(latestCacheKey(userId, targetJobId));
+  await track(userId, 'roadmap_item_completed', { item_id: itemId });
 }
 
 function latestCacheKey(userId: number, targetJobId: number): string {

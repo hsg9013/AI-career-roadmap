@@ -4,6 +4,7 @@ import { env } from '../../config/env.js';
 import { logger } from '../../lib/logger.js';
 import { HttpError } from '../../middlewares/errorHandler.js';
 import type { Role } from '../../lib/jwt.js';
+import { track } from '../../lib/analytics.js';
 import { issueSession, normalizeEmail, type LoginResult } from './service.js';
 
 // 003 US6(T042): 네이버 소셜 로그인 (FR-012, FR-020 점진 활성화).
@@ -102,6 +103,8 @@ export async function socialLoginNaver(code: string, state = ''): Promise<Social
     return { userId: newId, role: 'student' as Role, created: true };
   });
 
+  // 신규 가입은 signup(SC), 기존 계정 로그인은 revisit(SC-009).
+  await track(userId, created ? 'signup' : 'revisit', { method: 'naver' });
   const session = await issueSession({ id: userId, role });
   return { ...session, created };
 }

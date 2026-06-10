@@ -125,6 +125,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/roadmap/items/{itemId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 로드맵 항목 완료 표시(SC-003 측정 — 003 보강) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    itemId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 완료 처리 */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 항목 없음 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/payments/checkout": {
         parameters: {
             query?: never;
