@@ -47,6 +47,7 @@ const links = computed(() => {
     { to: '/roadmap', label: '로드맵' },
     { to: '/documents', label: '문서' },
     { to: '/missions', label: '미션' },
+    { to: '/feeds', label: '교육·공모전' },
     { to: '/notifications', label: '알림' },
     { to: '/membership', label: '내 이용권/멤버십' },
   ];

@@ -61,7 +61,7 @@ const routes: RouteRecordRaw[] = [
     path: '/feeds',
     name: 'feeds',
     component: () => import('../pages/Feeds.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, roles: ['student'] },
   },
   {
     path: '/notifications',
