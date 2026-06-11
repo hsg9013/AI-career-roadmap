@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; margin: 0; color: #111; padding: 22px 26px; width: 1500px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+  th, td { border: 1px solid #d0d7de; padding: 8px 10px; vertical-align: top; text-align: left; }
+  th { background: #1f6feb; color:#fff; font-weight: 600; }
+  td.num { text-align: center; font-weight: 700; color:#1f6feb; }
+  td.who { text-align: center; font-weight: 700; white-space: nowrap; background:#eaf2ff; }
+  td.area { font-weight: 600; }
+  td.ev { font-size: 11px; color:#444; }
+  tbody tr:nth-child(even) td:not(.who) { background: #fafbfc; }
+  b { color:#1f6feb; }
+</style>
+</head>
+<body>
+  <table>
+    <colgroup><col style="width:4%"><col style="width:18%"><col style="width:8%"><col style="width:47%"><col style="width:23%"></colgroup>
+    <thead><tr><th>#</th><th>기능 영역</th><th>주담당</th><th>기여내용 (무엇을 / 어떻게)</th><th>근거 (DDBM 캔버스 블록 · ISP)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="num">1</td><td class="area">입력 → 역량 진단 연결 구조</td><td class="who">황성권</td>
+        <td>회원가입 후 대학·전공·학년·목표 직무를 입력하고, 그 정보가 <b>대시보드의 역량 점수·부족 역량</b>으로 연결되도록 기능 흐름을 구성</td>
+        <td class="ev">「TO-BE 목표 기능」 블록 · ISP §7</td>
+      </tr>
+      <tr>
+        <td class="num">2</td><td class="area">활동·스펙 입력 기능 구체화</td><td class="who">황성권</td>
+        <td>프로젝트·인턴십·자격증·아르바이트·공모전·대외활동을 입력하는 활동·스펙 화면 담당. 시작일·종료일을 받아 활동을 단일 날짜가 아닌 <b>기간 데이터</b>로 관리</td>
+        <td class="ev">「갭 분석·개선 기회」 <b>G1</b> · ISP §6</td>
+      </tr>
+      <tr>
+        <td class="num">3</td><td class="area">로드맵 추천 ↔ 부족 역량 연결</td><td class="who">황성권</td>
+        <td>학년별 과제만 나열하지 않고, 각 과제가 <b>어떤 부족 역량을 보완하는지 설명</b>하도록 구성(algorithm·spring·node·kubernetes 등 역량 태그 + "부족 역량 보완에 기여")</td>
+        <td class="ev">「갭 분석·개선 기회」 <b>G3</b>(설명가능성) · ISP §6</td>
+      </tr>
+      <tr>
+        <td class="num">4</td><td class="area">활동 기록 → 문서 자동 생성</td><td class="who">황성권</td>
+        <td>이력서·자기소개서·포트폴리오 생성 버튼 + <b>PDF·Word 실제 다운로드</b> + draft/final 상태 관리 구성(화면 캡처가 아닌 실제 파일 생성)</td>
+        <td class="ev">「TO-BE 목표 기능」 · 「갭 분석」 <b>H5</b> · 「TO-BE 앱·기술 아키텍처」 · ISP §7·§9</td>
+      </tr>
+      <tr>
+        <td class="num">5</td><td class="area">학생 핵심 흐름 시연 순서 연결</td><td class="who">황성권</td>
+        <td>회원가입 → 활동·스펙 입력 → 대시보드 진단 → 로드맵 확인 → 문서 자동 생성으로 이어지는 흐름 정리(<b>활동·스펙 엔티티가 진단·로드맵·문서의 입력으로 연결</b>)</td>
+        <td class="ev">「TO-BE 목표 기능」 · 「TO-BE 데이터 아키텍처」 · 「이행 과제·우선순위」 · ISP §7·§8·§11</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
