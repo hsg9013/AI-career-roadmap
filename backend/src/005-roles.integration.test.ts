@@ -238,3 +238,43 @@ describe('T039-5 멘토 결합 피드백 + 역할 게이트', () => {
     await request(app).get('/v1/mentor/submissions').set(bearer(STU_A)).expect(403);
   });
 });
+
+// 005 회귀: 카탈로그에 없는 임의 코드('sfsdfds')로 목표직무·로드맵이 생성되지 않아야 한다.
+describe('T039-6 존재하지 않는 산업·직무 차단 (목표직무 저장 + 로드맵 생성)', () => {
+  it('목표직무 저장: 카탈로그에 없는 코드 → 400 INVALID_TARGET_JOB', async () => {
+    const res = await request(app)
+      .put('/v1/students/me/target-jobs')
+      .set(bearer(STU_B))
+      .send([{ industry_code: 'sfsdfds', job_role_code: 'sfsdfds', priority: 1 }])
+      .expect(400);
+    expect(res.body.code).toBe('INVALID_TARGET_JOB');
+  });
+
+  it('로드맵 생성: 과거에 저장된 garbage 목표직무 → 400, 로드맵 미생성', async () => {
+    // 검증을 우회해 직접 삽입된 garbage 행(기존 데이터 시뮬레이션).
+    const [[stu]] = (await getPool().query(
+      'SELECT s.id FROM students s JOIN users u ON u.id = s.user_id WHERE u.email = ?',
+      [STU_B],
+    )) as unknown as [Array<{ id: number }>];
+    const [ins] = await getPool().query(
+      "INSERT INTO target_jobs (student_id, industry_code, job_role_code, priority) VALUES (?, 'sfsdfds', 'sfsdfds', 2)",
+      [stu.id],
+    );
+    const garbageId = (ins as { insertId: number }).insertId;
+    try {
+      const res = await request(app)
+        .post('/v1/roadmap')
+        .set(bearer(STU_B))
+        .send({ target_job_id: garbageId })
+        .expect(400);
+      expect(res.body.code).toBe('INVALID_TARGET_JOB');
+      const [[cnt]] = (await getPool().query(
+        'SELECT COUNT(*) AS c FROM roadmaps WHERE target_job_id = ?',
+        [garbageId],
+      )) as unknown as [Array<{ c: number }>];
+      expect(Number(cnt.c)).toBe(0);
+    } finally {
+      await getPool().query('DELETE FROM target_jobs WHERE id = ?', [garbageId]);
+    }
+  });
+});

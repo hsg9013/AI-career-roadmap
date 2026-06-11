@@ -13,6 +13,7 @@ import {
 import { runInference, type AiSource } from './ai/infer.js';
 import { logger } from '../lib/logger.js';
 import { track } from '../lib/analytics.js';
+import { assertValidJobRole } from './catalog.js';
 
 // T026: 합격자 경로 기반 합격 로드맵 생성 (FR-005) + 거부 반영 (FR-006), k-익명성 게이트 (FR-019)
 //
@@ -344,6 +345,8 @@ async function buildRoadmapSummary(
 export async function generateRoadmap(userId: number, targetJobId: number): Promise<Roadmap> {
   const result = await withTransaction(async (conn) => {
     const tj = await loadTargetJob(conn, userId, targetJobId);
+    // 005: 카탈로그에 없는 코드면 로드맵 생성 거부(과거 저장된 임의 코드 'sfsdfds' 등 방어).
+    await assertValidJobRole(tj.industry_code, tj.job_role_code);
     const gradeBand = gradeBandFor(tj.year_in_school);
     const gap = await loadGapSkills(conn, tj.student_id, tj.id);
     const rej = await loadRejections(conn, tj.student_id);

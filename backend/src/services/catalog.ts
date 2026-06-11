@@ -69,6 +69,29 @@ export async function listAllJobRoles(): Promise<{ items: JobRoleNameDto[] }> {
   return { items };
 }
 
+// 005: 목표직무 코드 유효성 — 카탈로그(활성 산업·직무)에 존재하는 조합인지 확인.
+// 존재하지 않는 임의 코드('sfsdfds' 등)로 목표직무·로드맵이 생성되는 것을 막는다.
+export async function jobRoleExists(industryCode: string, jobRoleCode: string): Promise<boolean> {
+  const [rows] = await getPool().query(
+    `SELECT 1 FROM job_roles jr
+       JOIN industries i ON i.code = jr.industry_code
+      WHERE jr.industry_code = ? AND jr.code = ? AND jr.is_active = TRUE AND i.is_active = TRUE
+      LIMIT 1`,
+    [industryCode, jobRoleCode],
+  );
+  return (rows as unknown[]).length > 0;
+}
+
+export async function assertValidJobRole(industryCode: string, jobRoleCode: string): Promise<void> {
+  if (!(await jobRoleExists(industryCode, jobRoleCode))) {
+    throw new HttpError(
+      400,
+      'INVALID_TARGET_JOB',
+      `존재하지 않는 산업·직무입니다: ${industryCode}/${jobRoleCode}`,
+    );
+  }
+}
+
 export async function listJobsByIndustry(industryCode: string): Promise<{ items: JobRoleDto[] }> {
   const pool = getPool();
   const [industry] = await pool.query(

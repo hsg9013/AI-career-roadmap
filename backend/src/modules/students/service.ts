@@ -1,6 +1,7 @@
 import type { PoolConnection } from 'mysql2/promise';
 import { getPool, withTransaction } from '../../db/pool.js';
 import { HttpError } from '../../middlewares/errorHandler.js';
+import { assertValidJobRole } from '../../services/catalog.js';
 
 // T047: 학생 프로필 + 목표 직무 (최대 3, FR-009) 서비스 레이어
 
@@ -164,6 +165,11 @@ export async function replaceTargetJobs(
       throw new HttpError(400, 'DUPLICATE_JOB', `Duplicated job role: ${key}`);
     }
     roleKeys.add(key);
+  }
+
+  // 005: 카탈로그에 없는 임의 코드(예: 'sfsdfds') 차단 — 존재하지 않는 목표직무/로드맵 생성 방지.
+  for (const j of jobs) {
+    await assertValidJobRole(j.industry_code, j.job_role_code);
   }
 
   return withTransaction(async (conn) => {
