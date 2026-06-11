@@ -255,3 +255,17 @@ export async function updateDocument(
     };
   });
 }
+
+// 005 고도화: 자동 생성 문서 삭제(본인 소유만). documents 에 soft-delete 컬럼이 없어 하드 삭제.
+export async function deleteDocument(userId: number, docId: number): Promise<void> {
+  return withTransaction(async (conn) => {
+    const studentId = await resolveStudentId(conn, userId);
+    const [res] = await conn.query(
+      'DELETE FROM documents WHERE id = ? AND student_id = ?',
+      [docId, studentId],
+    );
+    if ((res as { affectedRows: number }).affectedRows === 0) {
+      throw new HttpError(404, 'DOCUMENT_NOT_FOUND', 'Document not found');
+    }
+  });
+}

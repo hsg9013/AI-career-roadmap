@@ -64,7 +64,19 @@ export const useDocumentsStore = defineStore('documents', () => {
     await fetchAll();
   }
 
-  return { documents, loading, lastError, fetchAll, generate, finalize };
+  // 005 고도화: 자동 생성 문서 삭제.
+  async function remove(docId: number): Promise<void> {
+    lastError.value = null;
+    try {
+      await getApi().delete(`/documents/${docId}`);
+      await fetchAll();
+    } catch (err) {
+      lastError.value = extractError(err);
+      throw err;
+    }
+  }
+
+  return { documents, loading, lastError, fetchAll, generate, finalize, remove };
 });
 
 export interface Mission {

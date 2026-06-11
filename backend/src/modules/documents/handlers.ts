@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { generateDocument, listDocuments, updateDocument } from '../../services/documents.js';
+import { generateDocument, listDocuments, updateDocument, deleteDocument } from '../../services/documents.js';
 import { HttpError } from '../../middlewares/errorHandler.js';
 
 // T033: 문서 핸들러 (US3)
@@ -44,6 +44,17 @@ export async function updateHandler(req: Request, res: Response, next: NextFunct
     const { docId } = req.params as unknown as z.infer<typeof updateParamsSchema>;
     const body = req.body as z.infer<typeof updateBodySchema>;
     res.status(200).json(await updateDocument(userId(req), docId, body));
+  } catch (err) {
+    next(err);
+  }
+}
+
+// 005 고도화: 자동 생성 문서 삭제.
+export async function deleteHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { docId } = req.params as unknown as z.infer<typeof updateParamsSchema>;
+    await deleteDocument(userId(req), docId);
+    res.status(204).end();
   } catch (err) {
     next(err);
   }

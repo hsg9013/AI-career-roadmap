@@ -27,6 +27,18 @@ async function generate(type: DocType): Promise<void> {
     busy.value = false;
   }
 }
+
+// 005 고도화: 자동 생성 문서 삭제(되돌릴 수 없음 → 확인).
+async function removeDoc(d: DocumentItem): Promise<void> {
+  if (!window.confirm(`'${d.title}' 문서를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+  busy.value = true;
+  try {
+    if (lastGenerated.value?.id === d.id) lastGenerated.value = null;
+    await docs.remove(d.id);
+  } finally {
+    busy.value = false;
+  }
+}
 </script>
 
 <template>
@@ -59,6 +71,7 @@ async function generate(type: DocType): Promise<void> {
           <button class="dl" @click="downloadPdf(d.title, d.content)">PDF</button>
           <button class="dl" @click="downloadDocx(d.title, d.content)">Word</button>
           <button v-if="d.status !== 'final'" :disabled="busy" @click="docs.finalize(d.id)">확정</button>
+          <button class="del" :disabled="busy" @click="removeDoc(d)">삭제</button>
         </div>
       </li>
     </ul>
@@ -84,5 +97,8 @@ async function generate(type: DocType): Promise<void> {
 .doc-actions { display: flex; gap: 0.4rem; align-items: center; }
 .doc-actions .dl { background: #fff; border: 1px solid #2563eb; color: #2563eb; border-radius: 6px; padding: 0.3rem 0.7rem; font-size: 0.82rem; cursor: pointer; }
 .doc-actions .dl:hover { background: #eff6ff; }
+.doc-actions .del { background: #fff; border: 1px solid #fecaca; color: #b91c1c; border-radius: 6px; padding: 0.3rem 0.7rem; font-size: 0.82rem; cursor: pointer; }
+.doc-actions .del:hover { background: #fef2f2; }
+.doc-actions .del:disabled { opacity: 0.5; cursor: not-allowed; }
 .empty { text-align: center; margin-top: 2rem; }
 </style>
