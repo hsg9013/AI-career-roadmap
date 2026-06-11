@@ -2,7 +2,7 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
-import { requireAuth, requireRole } from '../../middlewares/auth.js';
+import { requireAuth, requireRole, optionalAuth } from '../../middlewares/auth.js';
 import { validate } from '../../middlewares/requestValidator.js';
 import { getPool } from '../../db/pool.js';
 import { withTransaction } from '../../db/pool.js';
@@ -12,16 +12,52 @@ import { HttpError } from '../../middlewares/errorHandler.js';
 // 004 US8/G5: 외부 교육 제휴 배너(자체 집계). AFFILIATE_ENABLED off 시 미노출.
 // 004 US5/G4: 파트너 운영자 수동 등록(admin). 004 US9: 라이선스 등록(admin).
 
-// ── 제휴 배너(공개 조회) ──
-async function bannersHandler(_req: Request, res: Response, next: NextFunction): Promise<void> {
+// ── 제휴 배너(공개 조회, 선택적 인증) ──
+// 005: 로그인 학생이면 목표 산업·직무에 맞춰 노출. 타겟 없는 배너(전체 노출)는 항상 후순위로 함께 보인다.
+async function bannersHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     if (!env.AFFILIATE_ENABLED) {
       res.status(200).json({ items: [] });
       return;
     }
+    // 로그인 학생의 1순위 목표직무 조회(있으면).
+    let target: { industry_code: string; job_role_code: string } | null = null;
+    if (req.auth?.role === 'student') {
+      const [trows] = await getPool().query(
+        `SELECT tj.industry_code, tj.job_role_code
+           FROM target_jobs tj JOIN students s ON s.id = tj.student_id
+          WHERE s.user_id = ? ORDER BY tj.priority ASC, tj.id ASC LIMIT 1`,
+        [req.auth.sub],
+      );
+      target = (trows as Array<{ industry_code: string; job_role_code: string }>)[0] ?? null;
+    }
+
+    if (target) {
+      // 매칭 우선순위: 산업+직무 정확(3) > 산업 전체(2) > 타겟 없음(1). 다른 산업 전용 배너는 제외.
+      const { industry_code: ind, job_role_code: role } = target;
+      const [rows] = await getPool().query(
+        `SELECT id, title, image_url, landing_url, discount_text, TRUE AS sponsored,
+                CASE
+                  WHEN industry_code = ? AND job_role_code = ? THEN 3
+                  WHEN industry_code = ? AND job_role_code IS NULL THEN 2
+                  WHEN industry_code IS NULL THEN 1
+                  ELSE 0
+                END AS relevance
+           FROM partner_banner
+          WHERE active = TRUE
+            AND (industry_code IS NULL
+                 OR (industry_code = ? AND (job_role_code IS NULL OR job_role_code = ?)))
+          ORDER BY relevance DESC, id DESC LIMIT 20`,
+        [ind, role, ind, ind, role],
+      );
+      res.status(200).json({ items: rows });
+      return;
+    }
+
+    // 비로그인·목표직무 미설정: 전체 활성 배너(기존 동작).
     const [rows] = await getPool().query(
       `SELECT id, title, image_url, landing_url, discount_text, TRUE AS sponsored
-       FROM partner_banner WHERE active = TRUE ORDER BY id DESC LIMIT 20`,
+         FROM partner_banner WHERE active = TRUE ORDER BY id DESC LIMIT 20`,
     );
     res.status(200).json({ items: rows });
   } catch (err) {
@@ -98,8 +134,8 @@ async function signupHandler(req: Request, res: Response, next: NextFunction): P
 }
 
 export const partnersRouter: Router = Router();
-partnersRouter.get('/banners', bannersHandler);
-partnersRouter.post('/banners/:id/track', validate({ params: trackParams, body: trackBody }), trackHandler);
+partnersRouter.get('/banners', optionalAuth, bannersHandler);
+partnersRouter.post('/banners/:id/track', optionalAuth, validate({ params: trackParams, body: trackBody }), trackHandler);
 partnersRouter.post('/signup', validate({ body: signupBody }), signupHandler);
 
 // ── 파트너 등록(운영자) ──
@@ -321,7 +357,7 @@ async function portalListBannersHandler(req: Request, res: Response, next: NextF
   try {
     const pid = await resolvePartnerId(partnerUserId(req));
     const [rows] = await getPool().query(
-      'SELECT id, title, landing_url, discount_text, active FROM partner_banner WHERE partner_id = ? ORDER BY id DESC',
+      'SELECT id, title, landing_url, discount_text, industry_code, job_role_code, active FROM partner_banner WHERE partner_id = ? ORDER BY id DESC',
       [pid],
     );
     res.status(200).json(rows);
@@ -334,14 +370,19 @@ const bannerBody = z.object({
   title: z.string().min(1).max(200),
   landing_url: z.string().url().max(400),
   discount_text: z.string().max(120).optional(),
+  // 005: 타겟 산업·직무(선택). 빈 값/미지정이면 전체 노출. 직무만 단독 지정은 불가(산업 필요).
+  industry_code: z.string().max(40).optional(),
+  job_role_code: z.string().max(80).optional(),
 });
 async function portalCreateBannerHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const pid = await resolvePartnerId(partnerUserId(req));
     const b = req.body as z.infer<typeof bannerBody>;
+    const industry = b.industry_code?.trim() || null;
+    const role = industry ? b.job_role_code?.trim() || null : null; // 산업 없이는 직무 타겟 무의미
     const [ins] = await getPool().query(
-      `INSERT INTO partner_banner (partner_id, title, landing_url, discount_text, active) VALUES (?, ?, ?, ?, 1)`,
-      [pid, b.title, b.landing_url, b.discount_text ?? null],
+      `INSERT INTO partner_banner (partner_id, title, landing_url, discount_text, industry_code, job_role_code, active) VALUES (?, ?, ?, ?, ?, ?, 1)`,
+      [pid, b.title, b.landing_url, b.discount_text ?? null, industry, role],
     );
     res.status(201).json({ id: (ins as { insertId: number }).insertId });
   } catch (err) {

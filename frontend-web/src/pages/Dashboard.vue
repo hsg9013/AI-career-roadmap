@@ -121,7 +121,7 @@ async function rerunDiagnosis(): Promise<void> {
     </div>
 
     <div v-if="market.banners.length" class="promo">
-      <h3>교육·자격증 제휴 혜택 <span class="ad-tag">광고/제휴</span></h3>
+      <h3>교육·자격증 제휴 혜택 <span class="ad-tag">광고/제휴</span> <span class="ad-match">목표 직무 맞춤</span></h3>
       <ul class="promo-list">
         <li v-for="b in market.banners" :key="b.id" @click="openBanner(b.id, b.landing_url)">
           <span class="title">{{ b.title }}</span>
@@ -167,6 +167,7 @@ async function rerunDiagnosis(): Promise<void> {
 .promo { margin-top: 1.5rem; border: 1px solid #e5e7eb; border-radius: 10px; padding: 0.9rem 1.1rem; }
 .promo h3 { margin: 0 0 0.5rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
 .ad-tag { font-size: 0.68rem; font-weight: 700; color: #6b7280; background: #f3f4f6; border-radius: 999px; padding: 0.1rem 0.45rem; }
+.ad-match { font-size: 0.68rem; font-weight: 700; color: #0e7490; background: #cffafe; border-radius: 999px; padding: 0.1rem 0.45rem; }
 .promo-list { list-style: none; padding: 0; margin: 0; }
 .promo-list li { display: flex; align-items: center; gap: 0.7rem; padding: 0.45rem 0; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
 .promo-list .title { font-weight: 500; }

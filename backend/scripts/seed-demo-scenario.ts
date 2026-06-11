@@ -243,6 +243,17 @@ async function main(): Promise<void> {
     for (let i = 0; i < 8; i++) await pool.query("INSERT INTO banner_conversion (partner_banner_id, event) VALUES (?, 'click')", [eduBannerId]);
     for (let i = 0; i < 2; i++) await pool.query("INSERT INTO banner_conversion (partner_banner_id, event) VALUES (?, 'convert')", [eduBannerId]);
   }
+  // 005: 타겟 배너 — IT/백엔드 학생에게만 우선 노출(토익 배너는 타겟 없음=전체 노출). 멱등 삽입.
+  const targetedBannerId = await scalarId(
+    "SELECT id FROM partner_banner WHERE partner_id = ? AND industry_code = 'IT' AND job_role_code = 'backend' LIMIT 1",
+    [eduPartnerId],
+  );
+  if (!targetedBannerId) {
+    await pool.query(
+      "INSERT INTO partner_banner (partner_id, title, landing_url, discount_text, industry_code, job_role_code, active) VALUES (?, '백엔드 실무 부트캠프(IT 백엔드 맞춤)', 'https://edu.demo.local/backend-camp', '수강료 20% 할인', 'IT', 'backend', 1)",
+      [eduPartnerId],
+    );
+  }
 
   console.log('\n=== 데모 시나리오 시딩 완료 ===');
   console.log(`1) 대학: university_id=${universityId}, staff 연결 ${uniUserId ? 'OK(individual)' : '없음(데모대학 계정 부재)'}`);

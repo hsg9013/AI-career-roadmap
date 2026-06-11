@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { getApi } from 'frontend-shared';
+import { computed, onMounted, ref } from 'vue';
+import { getApi, useCatalogStore } from 'frontend-shared';
 
 // 005 고도화: 교육·활동 플랫폼 제휴사 포털(role=edu_platform)
 //   - 성과 요약(피드/배너 수·노출·클릭) + 콘텐츠 발행(/feeds 반영) + 제휴 배너 관리.
+//   - 배너 타겟팅: 산업·직무를 지정하면 해당 학생에게만 우선 노출(미지정=전체 노출).
 
 interface Overview { partner: { name: string; status: string }; feed_count: number; banner_count: number; banner_active: number; clicks: number; conversions: number }
 interface FeedItem { id: number; kind: string; title: string; freshness: string; collected_at: string }
-interface Banner { id: number; title: string; landing_url: string; discount_text: string | null; active: number }
+interface Banner { id: number; title: string; landing_url: string; discount_text: string | null; industry_code: string | null; job_role_code: string | null; active: number }
 
+const catalog = useCatalogStore();
 const overview = ref<Overview | null>(null);
 const feeds = ref<FeedItem[]>([]);
 const banners = ref<Banner[]>([]);
@@ -16,7 +18,21 @@ const busy = ref(false);
 const msg = ref('');
 
 const feedForm = ref<{ kind: 'certification' | 'contest'; title: string }>({ kind: 'certification', title: '' });
-const bannerForm = ref<{ title: string; landing_url: string; discount_text: string }>({ title: '', landing_url: '', discount_text: '' });
+const bannerForm = ref<{ title: string; landing_url: string; discount_text: string; industry_code: string; job_role_code: string }>({ title: '', landing_url: '', discount_text: '', industry_code: '', job_role_code: '' });
+
+// 타겟 선택지(카탈로그 코드→한글명)
+const industryOptions = computed(() => Object.entries(catalog.industryName).map(([code, name]) => ({ code, name })));
+const jobOptions = computed(() => {
+  const ind = bannerForm.value.industry_code;
+  if (!ind) return [] as Array<{ code: string; name: string }>;
+  return Object.entries(catalog.jobRoleName)
+    .filter(([key]) => key.startsWith(`${ind}/`))
+    .map(([key, name]) => ({ code: key.split('/')[1]!, name }));
+});
+function targetLabel(b: Banner): string {
+  if (!b.industry_code) return '전체 노출';
+  return `맞춤: ${catalog.jobLabel(b.industry_code, b.job_role_code)}`;
+}
 
 async function loadAll(): Promise<void> {
   const [o, f, b] = await Promise.all([
@@ -26,7 +42,7 @@ async function loadAll(): Promise<void> {
   ]);
   overview.value = o.data; feeds.value = f.data; banners.value = b.data;
 }
-onMounted(() => loadAll().catch(() => undefined));
+onMounted(() => { void catalog.load(); loadAll().catch(() => undefined); });
 
 async function addFeed(): Promise<void> {
   if (!feedForm.value.title.trim()) return;
@@ -55,8 +71,10 @@ async function addBanner(): Promise<void> {
       title: bannerForm.value.title,
       landing_url: bannerForm.value.landing_url,
       discount_text: bannerForm.value.discount_text || undefined,
+      industry_code: bannerForm.value.industry_code || undefined,
+      job_role_code: bannerForm.value.industry_code ? (bannerForm.value.job_role_code || undefined) : undefined,
     });
-    bannerForm.value = { title: '', landing_url: '', discount_text: '' };
+    bannerForm.value = { title: '', landing_url: '', discount_text: '', industry_code: '', job_role_code: '' };
     msg.value = '배너가 등록되었습니다.';
     await loadAll();
   } catch { msg.value = '배너 등록 실패 (링크 형식을 확인하세요).'; }
@@ -109,17 +127,28 @@ const KIND_LABEL: Record<string, string> = { certification: '자격증·교육',
     </ul>
 
     <!-- 배너 관리 -->
-    <h3 class="sec">제휴 배너 관리 <span class="muted">(학생 대시보드 노출)</span></h3>
+    <h3 class="sec">제휴 배너 관리 <span class="muted">(학생 대시보드 노출 — 산업·직무 지정 시 해당 학생에게 우선 노출)</span></h3>
     <div class="form">
       <input v-model="bannerForm.title" class="grow" placeholder="배너 제목 (예: 토익 단기 과정 30% 할인)" />
       <input v-model="bannerForm.landing_url" class="grow" placeholder="https://landing.example.com" />
       <input v-model="bannerForm.discount_text" placeholder="혜택(선택)" />
+    </div>
+    <div class="form">
+      <select v-model="bannerForm.industry_code" title="타겟 산업(선택)" @change="bannerForm.job_role_code = ''">
+        <option value="">전체 산업(타겟 없음)</option>
+        <option v-for="i in industryOptions" :key="i.code" :value="i.code">{{ i.name }}</option>
+      </select>
+      <select v-model="bannerForm.job_role_code" title="타겟 직무(선택)" :disabled="!bannerForm.industry_code">
+        <option value="">{{ bannerForm.industry_code ? '산업 내 전체 직무' : '직무 — 산업 먼저 선택' }}</option>
+        <option v-for="j in jobOptions" :key="j.code" :value="j.code">{{ j.name }}</option>
+      </select>
       <button :disabled="busy || !bannerForm.title.trim() || !bannerForm.landing_url.trim()" @click="addBanner">등록</button>
     </div>
     <ul class="list">
       <li v-for="b in banners" :key="b.id" class="row">
         <span class="title">{{ b.title }}</span>
         <span v-if="b.discount_text" class="disc">{{ b.discount_text }}</span>
+        <span class="target" :class="{ all: !b.industry_code }">{{ targetLabel(b) }}</span>
         <span class="link muted">{{ b.landing_url }}</span>
         <button class="toggle" :class="{ on: b.active }" :disabled="busy" @click="toggleBanner(b)">
           {{ b.active ? '노출 중' : '숨김' }}
@@ -152,6 +181,8 @@ const KIND_LABEL: Record<string, string> = { certification: '자격증·교육',
 .row .kind { font-size: 0.72rem; font-weight: 700; color: #4338ca; background: #eef2ff; border-radius: 999px; padding: 0.12rem 0.5rem; white-space: nowrap; }
 .row .title { font-weight: 500; }
 .row .disc { font-size: 0.8rem; color: #b45309; }
+.row .target { font-size: 0.72rem; font-weight: 700; color: #0e7490; background: #cffafe; border-radius: 999px; padding: 0.12rem 0.5rem; white-space: nowrap; }
+.row .target.all { color: #6b7280; background: #f3f4f6; }
 .row .link { margin-left: auto; font-size: 0.78rem; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pill { margin-left: auto; font-size: 0.72rem; padding: 0.12rem 0.5rem; border-radius: 999px; }
 .pill.fresh { background: #dcfce7; color: #166534; }
