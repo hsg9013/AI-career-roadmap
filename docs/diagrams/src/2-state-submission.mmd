@@ -1,0 +1,22 @@
+%% 상태 전이 — 미션 제출물(submissions.state) + 멘토 검수(review_assignments.status)
+%% 출처: backend/src/services/missions.ts, V010 CHECK 제약
+stateDiagram-v2
+  direction LR
+  [*] --> AI검수
+  state "AI 1차 검수<br/>state = ai_reviewed" as AI검수
+  state "멘토 배정<br/>state = assigned · SLA 영업일 마감" as 배정
+  state "재배정<br/>state = reassigned" as 재배정
+  state "멘토 검수 완료<br/>review = completed" as 완료
+  state "AI 폴백<br/>state = ai_fallback" as 폴백
+
+  AI검수 --> 배정 : 멘토 매칭 (deadline 부여)
+  배정 --> 완료 : 멘토 피드백 작성
+  재배정 --> 완료 : 대체 멘토 검수
+  배정 --> 재배정 : 마감 초과 · 대체 멘토 있음
+  배정 --> 폴백 : 마감 초과 · 대체 멘토 없음
+  재배정 --> 폴백 : 재차 마감 초과
+  완료 --> [*]
+  폴백 --> [*]
+
+  note right of AI검수 : 학생 제출 즉시<br/>AI 1차 피드백 생성
+  note right of 완료 : 학생은 AI+멘토<br/>피드백 결합 조회
