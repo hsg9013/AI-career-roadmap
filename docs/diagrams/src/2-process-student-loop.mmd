@@ -1,0 +1,15 @@
+flowchart TD
+  A[회원가입/로그인] --> B[목표 직무 설정]
+  B --> C[갭 진단<br/>job_requirements 대비 보유역량]
+  C --> D{동문 데이터<br/>코호트 충분?}
+  D -- "≥5명 코호트" --> E[코호트 기반 AI 로드맵<br/>cohort_key·rationale]
+  D -- "부족" --> F[직무 전체 폴백 로드맵]
+  E --> G[추천 활동·미션 수행]
+  F --> G
+  G --> H[활동 등록 / 미션 제출]
+  H --> I[AI 피드백 + 멘토 피드백 결합]
+  I --> J[이력서·자소서 자동 반영·내보내기<br/>PDF/DOCX]
+  J --> C
+
+  classDef hl fill:#dbeafe,stroke:#1f6feb;
+  class E,I hl;

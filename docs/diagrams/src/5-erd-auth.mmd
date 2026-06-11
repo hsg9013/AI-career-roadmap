@@ -1,0 +1,38 @@
+erDiagram
+  users ||--o| students : "1:1 프로필"
+  users ||--o| mentors : "1:1"
+  users ||--o| university_staff : "1:1"
+  users ||--o| company_staff : "1:1"
+  users ||--o{ partner_account : "로그인 계정"
+  partner ||--o{ partner_account : "기관"
+  users ||--o{ refresh_tokens : "세션"
+  users ||--o{ consent_records : "동의 이력"
+  universities ||--o{ university_staff : ""
+  companies ||--o{ company_staff : ""
+
+  users {
+    bigint id PK
+    varchar email UK
+    varchar role "student|mentor|university|enterprise|admin|edu_platform"
+    tinyint is_active "승인 게이트"
+  }
+  students {
+    bigint user_id FK
+    varchar university
+    varchar major
+    tinyint year_in_school
+    varchar university_consent_scope
+  }
+  partner {
+    bigint id PK
+    varchar type "edu_platform 등"
+    varchar status "pending|active|rejected|suspended"
+  }
+  partner_account {
+    bigint partner_id FK
+    bigint user_id FK
+  }
+  mentors {
+    bigint user_id FK
+    varchar expertise
+  }

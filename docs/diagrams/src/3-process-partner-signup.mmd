@@ -1,0 +1,24 @@
+sequenceDiagram
+  autonumber
+  actor P as 제휴사
+  participant FE as 가입폼<br/>(PartnerSignup.vue)
+  participant API as POST /partners/signup
+  participant DB as DB
+  actor A as 운영자
+  participant ADM as PATCH /admin/partners/:id/status
+
+  P->>FE: 기관명·이메일·비밀번호 입력
+  FE->>API: 자체 가입 요청
+  API->>DB: partner(status='pending')
+  API->>DB: users(role='edu_platform', is_active=0)
+  API->>DB: partner_account 연결
+  API-->>P: 201 (가입 접수 · 승인 대기)
+  Note over P,API: 이 시점에는 로그인 불가 (승인 게이트)
+
+  A->>ADM: 승인(active) 처리
+  ADM->>DB: partner.status='active'
+  ADM->>DB: users.is_active=1 (로그인 활성화)
+  ADM-->>A: 200
+
+  P->>API: 로그인 → /partner-portal
+  Note over P: 피드물 발행 · 배너 관리 · 성과 조회 가능

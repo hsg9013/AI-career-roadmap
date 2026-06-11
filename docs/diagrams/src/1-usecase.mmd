@@ -1,0 +1,55 @@
+flowchart LR
+  학생([👤 학생]):::actor
+  멘토([🧑‍🏫 멘토]):::actor
+  대학([🏫 대학]):::actor
+  기업([🏢 기업]):::actor
+  제휴사([🤝 교육·활동 플랫폼 제휴사]):::actor
+  운영자([🛠️ 운영자/Admin]):::actor
+
+  subgraph 진로성장["진로 성장 핵심 루프"]
+    UC1[목표 직무 설정]
+    UC2[갭 진단]
+    UC3[AI 로드맵 생성·조회]
+    UC4[활동 등록·이력 관리]
+    UC5[미션 제출]
+    UC6[이력서·자소서 작성/내보내기]
+  end
+
+  subgraph 멘토링["멘토링"]
+    UC7[배정 제출물 조회]
+    UC8[피드백 작성 ★]
+  end
+
+  subgraph 수익화["수익화 · 외부 연계"]
+    UC9[멤버십 결제 - 샌드박스 ★]
+    UC10[외부 피드 조회<br/>교육·공모전 ★]
+    UC11[배너 클릭/전환]
+  end
+
+  subgraph 기관["기관 기능"]
+    UC12[학생 통계 조회<br/>동의 범위 내]
+    UC13[인재 매칭 검색<br/>동의 학생]
+    UC14[채용 광고 게시]
+  end
+
+  subgraph 제휴포털["제휴사 포털 ★"]
+    UC15[자체 가입 ★]
+    UC16[피드물 발행 ★]
+    UC17[배너 등록·관리 ★]
+    UC18[성과 조회<br/>클릭·전환 ★]
+  end
+
+  subgraph 관리["운영"]
+    UC19[파트너 가입 승인/거절 ★]
+    UC20[제출물·피드물 삭제 ★]
+    UC21[AI 데모 토글 ★]
+  end
+
+  학생 --> UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC9 & UC10 & UC11
+  멘토 --> UC7 & UC8
+  대학 --> UC12
+  기업 --> UC13 & UC14
+  제휴사 --> UC15 & UC16 & UC17 & UC18
+  운영자 --> UC19 & UC20 & UC21
+
+  classDef actor fill:#1f6feb,color:#fff,stroke:#0b3d91,stroke-width:1px;

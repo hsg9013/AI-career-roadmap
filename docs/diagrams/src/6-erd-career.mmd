@@ -1,0 +1,33 @@
+erDiagram
+  students ||--o{ target_jobs : "목표 직무"
+  students ||--o{ activities : "활동 이력"
+  students ||--o{ gap_diagnoses : "갭 진단"
+  students ||--o{ roadmaps : "로드맵"
+  target_jobs ||--o{ roadmaps : ""
+  roadmaps ||--o{ roadmap_items : "추천 항목"
+  alumni_paths ||--o{ alumni_path_activities : "동문 경로"
+  students ||--o{ documents : "이력서/자소서"
+  missions ||--o{ submissions : ""
+  students ||--o{ submissions : "제출"
+  submissions ||--o{ feedbacks : "AI+멘토"
+  submissions ||--o| review_assignments : "멘토 배정"
+
+  roadmaps {
+    bigint id PK
+    varchar source "cohort|fallback"
+    varchar cohort_key
+    int cohort_size
+  }
+  roadmap_items {
+    varchar title
+    varchar rationale "추천 근거"
+    decimal score
+  }
+  feedbacks {
+    varchar kind "ai|mentor"
+    bigint mentor_id FK
+  }
+  review_assignments {
+    bigint mentor_id FK
+    varchar status "pending|completed"
+  }

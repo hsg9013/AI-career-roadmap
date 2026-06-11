@@ -1,0 +1,35 @@
+erDiagram
+  students ||--o{ memberships : "구독"
+  users ||--o{ payments : "결제"
+  payments ||--o| memberships : ""
+  partner ||--o{ partner_banner : "배너"
+  partner_banner ||--o{ banner_conversion : "클릭/전환"
+  companies ||--o{ job_ad : "채용 광고"
+  job_ad ||--o{ job_ad_impression : "노출"
+  partner ||--o{ external_feed_item : "발행 source=partner-{id}"
+  students ||--o{ paid_service_order : "유료 서비스"
+
+  payments {
+    bigint id PK
+    varchar kind
+    int amount
+    varchar status "샌드박스 success/fail"
+  }
+  memberships {
+    varchar plan
+    datetime ends_at
+    tinyint auto_renew
+  }
+  partner_banner {
+    varchar title
+    varchar landing_url
+    boolean active
+  }
+  banner_conversion {
+    varchar event "click|convert"
+  }
+  external_feed_item {
+    varchar kind "certification|contest"
+    varchar source
+    varchar freshness "fresh|stale"
+  }
