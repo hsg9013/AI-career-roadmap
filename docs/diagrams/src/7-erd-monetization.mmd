@@ -1,35 +1,35 @@
+%% 어떤 정보들이 서로 연결되는지 — 결제·광고·제휴 편 (쉬운 말 버전)
 erDiagram
-  students ||--o{ memberships : "구독"
-  users ||--o{ payments : "결제"
-  payments ||--o| memberships : ""
-  partner ||--o{ partner_banner : "배너"
-  partner_banner ||--o{ banner_conversion : "클릭/전환"
-  companies ||--o{ job_ad : "채용 광고"
-  job_ad ||--o{ job_ad_impression : "노출"
-  partner ||--o{ external_feed_item : "발행 source=partner-{id}"
-  students ||--o{ paid_service_order : "유료 서비스"
+  학생 ||--o{ 멤버십 : "구독"
+  사용자 ||--o{ 결제 : "결제 내역"
+  결제 ||--o| 멤버십 : ""
+  교육활동업체 ||--o{ 광고배너 : "올린 광고"
+  광고배너 ||--o{ 광고반응 : "클릭·신청"
+  기업 ||--o{ 채용공고 : "올린 공고"
+  채용공고 ||--o{ 공고노출 : "학생에게 보여줌"
+  교육활동업체 ||--o{ 외부소식 : "올린 소식"
+  학생 ||--o{ 유료서비스신청 : "유료 서비스"
 
-  payments {
-    bigint id PK
-    varchar kind
-    int amount
-    varchar status "샌드박스 success/fail"
+  결제 {
+    글자 종류
+    숫자 금액
+    글자 상태 "진행중·완료·실패·취소·환불"
   }
-  memberships {
-    varchar plan
-    datetime ends_at
-    tinyint auto_renew
+  멤버십 {
+    글자 등급
+    날짜 종료일
+    참거짓 자동갱신
   }
-  partner_banner {
-    varchar title
-    varchar landing_url
-    boolean active
+  광고배너 {
+    글자 제목
+    글자 연결주소
+    참거짓 노출중
   }
-  banner_conversion {
-    varchar event "click|convert"
+  광고반응 {
+    글자 종류 "클릭 / 신청"
   }
-  external_feed_item {
-    varchar kind "certification|contest"
-    varchar source
-    varchar freshness "fresh|stale"
+  외부소식 {
+    글자 종류 "자격증·교육 / 공모전·대외활동"
+    글자 출처
+    글자 신선도 "최신 / 오래됨"
   }

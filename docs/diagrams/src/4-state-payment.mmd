@@ -1,21 +1,20 @@
-%% 상태 전이 — 결제(payments.status) 상태머신 + 멤버십 활성화
-%% 출처: backend/src/services/payments.ts (canTransition 맵)
+%% 멤버십 결제가 어떻게 처리되는지 — 쉬운 말 버전
 stateDiagram-v2
   direction LR
-  [*] --> 대기 : checkout (pending 결제 생성)
-  state "결제 대기<br/>pending" as 대기
-  state "결제 완료<br/>paid → 멤버십 30일 활성" as 완료
-  state "결제 실패<br/>failed" as 실패
-  state "취소<br/>canceled" as 취소
-  state "환불<br/>refunded" as 환불
+  [*] --> 대기 : 결제 시작
+  state "결제 진행 중" as 대기
+  state "결제 완료<br/>(멤버십 30일 시작)" as 완료
+  state "결제 실패" as 실패
+  state "결제 취소" as 취소
+  state "환불됨" as 환불
 
-  대기 --> 완료 : 승인 · 웹훅 paid<br/>(dev 무키는 즉시 / force_result=success)
-  대기 --> 실패 : 실패 · force_result=fail
-  완료 --> 취소 : 결제 취소
-  완료 --> 환불 : 환불
+  대기 --> 완료 : 결제가 승인됨
+  대기 --> 실패 : 결제가 안 됨
+  완료 --> 취소 : 결제를 취소함
+  완료 --> 환불 : 돈을 돌려줌
   실패 --> [*]
   취소 --> [*]
   환불 --> [*]
 
-  note right of 완료 : 등급 변경 반영<br/>(멤버십 활성)
-  note right of 실패 : 등급 미변경<br/>(failed 종결)
+  note right of 완료 : 멤버십 등급이 올라감
+  note right of 실패 : 등급은 그대로

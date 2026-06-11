@@ -1,22 +1,21 @@
-%% 상태 전이 — 미션 제출물(submissions.state) + 멘토 검수(review_assignments.status)
-%% 출처: backend/src/services/missions.ts, V010 CHECK 제약
+%% 학생이 낸 과제가 어떤 단계를 거치는지 — 쉬운 말 버전
 stateDiagram-v2
   direction LR
   [*] --> AI검수
-  state "AI 1차 검수<br/>state = ai_reviewed" as AI검수
-  state "멘토 배정<br/>state = assigned · SLA 영업일 마감" as 배정
-  state "재배정<br/>state = reassigned" as 재배정
-  state "멘토 검수 완료<br/>review = completed" as 완료
-  state "AI 폴백<br/>state = ai_fallback" as 폴백
+  state "AI가 먼저 봐줌" as AI검수
+  state "멘토에게 맡겨짐<br/>(검토 기한 시작)" as 배정
+  state "다른 멘토에게 다시 맡김" as 재배정
+  state "멘토 검토 끝남" as 완료
+  state "멘토를 못 구해<br/>AI가 대신 봐줌" as 폴백
 
-  AI검수 --> 배정 : 멘토 매칭 (deadline 부여)
-  배정 --> 완료 : 멘토 피드백 작성
-  재배정 --> 완료 : 대체 멘토 검수
-  배정 --> 재배정 : 마감 초과 · 대체 멘토 있음
-  배정 --> 폴백 : 마감 초과 · 대체 멘토 없음
-  재배정 --> 폴백 : 재차 마감 초과
+  AI검수 --> 배정 : 멘토 정해짐
+  배정 --> 완료 : 멘토가 조언을 남김
+  재배정 --> 완료 : 다른 멘토가 검토함
+  배정 --> 재배정 : 기한 넘김 · 다른 멘토 있음
+  배정 --> 폴백 : 기한 넘김 · 멘토 없음
+  재배정 --> 폴백 : 또 기한 넘김
   완료 --> [*]
   폴백 --> [*]
 
-  note right of AI검수 : 학생 제출 즉시<br/>AI 1차 피드백 생성
-  note right of 완료 : 학생은 AI+멘토<br/>피드백 결합 조회
+  note right of AI검수 : 과제를 내면<br/>바로 AI 조언이 달림
+  note right of 완료 : 학생은 AI 조언과<br/>멘토 조언을 함께 봄

@@ -1,38 +1,36 @@
+%% 어떤 정보들이 서로 연결되는지 — 회원·계정 편 (쉬운 말 버전)
 erDiagram
-  users ||--o| students : "1:1 프로필"
-  users ||--o| mentors : "1:1"
-  users ||--o| university_staff : "1:1"
-  users ||--o| company_staff : "1:1"
-  users ||--o{ partner_account : "로그인 계정"
-  partner ||--o{ partner_account : "기관"
-  users ||--o{ refresh_tokens : "세션"
-  users ||--o{ consent_records : "동의 이력"
-  universities ||--o{ university_staff : ""
-  companies ||--o{ company_staff : ""
+  사용자 ||--o| 학생 : "한 명은 한 학생"
+  사용자 ||--o| 멘토 : "한 명은 한 멘토"
+  사용자 ||--o| 대학담당자 : "한 명은 한 담당자"
+  사용자 ||--o| 기업담당자 : "한 명은 한 담당자"
+  사용자 ||--o{ 업체계정 : "업체 로그인 계정"
+  교육활동업체 ||--o{ 업체계정 : "소속 업체"
+  사용자 ||--o{ 로그인기록 : "로그인 유지"
+  사용자 ||--o{ 동의기록 : "개인정보 동의"
+  대학 ||--o{ 대학담당자 : ""
+  기업 ||--o{ 기업담당자 : ""
 
-  users {
-    bigint id PK
-    varchar email UK
-    varchar role "student|mentor|university|enterprise|admin|edu_platform"
-    tinyint is_active "승인 게이트"
+  사용자 {
+    숫자 번호
+    글자 이메일
+    글자 역할 "학생·멘토·기업·운영자·업체"
+    참거짓 사용여부 "승인 전엔 로그인 잠김"
   }
-  students {
-    bigint user_id FK
-    varchar university
-    varchar major
-    tinyint year_in_school
-    varchar university_consent_scope
+  학생 {
+    글자 학교
+    글자 전공
+    숫자 학년
+    글자 정보공개_동의범위
   }
-  partner {
-    bigint id PK
-    varchar type "edu_platform 등"
-    varchar status "pending|active|rejected|suspended"
+  교육활동업체 {
+    글자 업체이름
+    글자 가입상태 "신청중·이용가능·거절·정지"
   }
-  partner_account {
-    bigint partner_id FK
-    bigint user_id FK
+  업체계정 {
+    숫자 업체번호
+    숫자 사용자번호
   }
-  mentors {
-    bigint user_id FK
-    varchar expertise
+  멘토 {
+    글자 전문분야
   }

@@ -1,18 +1,18 @@
-# 발표용 다이어그램 — AI 진로 로드맵 플랫폼 (003 · 004 · 005)
+# 발표용 다이어그램 — AI 진로 도우미 서비스 (쉬운 말 버전)
 
-> 각 다이어그램은 **무엇이 핵심인 시스템 표현인지**에 맞춰 작성했습니다.
-> - **유스케이스** — 사용자(actor) ↔ 기능(use case) **관계**가 핵심
-> - **프로세스(상태 전이)** — 업무 흐름 속 **상태 전이(state transition)**가 핵심
-> - **데이터 모델(ERD)** — **데이터 구조**가 핵심
+> 발표 청중이 바로 이해하도록 **전문 용어 대신 일상어**로 작성했습니다.
+> - **유스케이스** — 누가(사용자) 무엇을(기능) 하는지 **관계**
+> - **상태 그림** — 일이 **어떤 단계를 거쳐 어떻게 바뀌는지(상태 변화)**
+> - **데이터 그림(ERD)** — 어떤 **정보들이 서로 어떻게 연결되는지**
 >
-> Mermaid 코드블록이라 GitHub · Notion · VS Code · 슬라이드 변환기에서 바로 렌더됩니다.
-> 추출본: `docs/diagrams/svg/`, `docs/diagrams/png/`, 묶음 PDF `docs/diagrams/발표자료-AI진로로드맵.pdf`
+> Mermaid 코드라 GitHub·Notion·슬라이드에서 바로 보입니다.
+> 그림 파일: `docs/diagrams/svg/`, `docs/diagrams/png/` · 묶음 PDF `docs/diagrams/발표자료-AI진로로드맵.pdf`
 
 ---
 
-## 1. 유스케이스 다이어그램 — 사용자-기능 관계
+## 1. 누가 무엇을 하나 (유스케이스)
 
-6개 actor가 시스템 경계 안의 어떤 기능과 연결되는지(이용 관계)를 보여줍니다. ★ = 005 신규.
+여섯 종류의 사용자가 서비스 안에서 어떤 일을 하는지 보여줍니다. ★ = 새로 추가된 기능.
 
 ```mermaid
 flowchart LR
@@ -20,23 +20,23 @@ flowchart LR
   멘토(["🧑‍🏫 멘토"]):::actor
   대학(["🏫 대학"]):::actor
   기업(["🏢 기업"]):::actor
-  제휴사(["🤝 제휴사<br/>(교육·활동 플랫폼)"]):::actor
+  제휴사(["🤝 교육·활동 업체"]):::actor
   운영자(["🛠️ 운영자"]):::actor
 
-  subgraph SYS["🎯 AI 진로 로드맵 플랫폼"]
+  subgraph SYS["🎯 AI 진로 도우미 서비스"]
     direction TB
-    U1(["목표직무 설정 · 갭진단 · AI 로드맵"])
-    U2(["활동 등록 · 미션 제출"])
-    U3(["이력서 · 자소서 작성/내보내기"])
-    U4(["멤버십 결제 (샌드박스) ★"])
-    U5(["외부 피드 조회 · 배너 ★"])
-    M1(["배정 제출물 검수 · 피드백 작성 ★"])
-    G1(["학생 통계 조회 (동의 범위 내)"])
-    E1(["인재 매칭 검색 (동의 학생) ★"])
-    E2(["채용 광고 게시"])
-    P1(["자체 가입 · 피드물 발행 ★"])
-    P2(["배너 관리 · 성과(클릭·전환) 조회 ★"])
-    A1(["가입 승인/거절 · 콘텐츠 삭제 · 데모 토글 ★"])
+    U1(["목표 직업 정하고 · 부족한 점 확인하고 · 맞춤 진로 계획 받기"])
+    U2(["내 활동 기록하고 · 과제 내기"])
+    U3(["이력서·자기소개서 만들고 내려받기"])
+    U4(["멤버십 결제하기 (시범 결제) ★"])
+    U5(["교육·공모전 소식 보기 · 광고 보기 ★"])
+    M1(["맡은 과제 보고 조언 남기기 ★"])
+    G1(["우리 학교 학생 현황 보기 (동의한 범위만)"])
+    E1(["원하는 인재 찾기 (동의한 학생만) ★"])
+    E2(["채용 공고 올리기"])
+    P1(["직접 가입하고 · 교육·공모전 소식 올리기 ★"])
+    P2(["광고 올리고 관리하고 · 반응(클릭·신청) 확인하기 ★"])
+    A1(["가입 승인·거절 · 잘못된 글 삭제 · 시연 모드 켜고 끄기 ★"])
   end
 
   학생 --- U1
@@ -58,217 +58,212 @@ flowchart LR
 
 ---
 
-## 2. 프로세스(상태 전이) — 미션 제출물 · 멘토 검수
+## 2. 낸 과제가 거치는 단계 (상태 그림)
 
-`submissions.state` + `review_assignments.status`의 실제 전이. SLA(영업일) 초과 시 재배정/AI 폴백으로 분기.
+학생이 과제를 내면, 멘토를 못 구해도 AI가 대신 봐주어 **누구나 조언을 받게** 됩니다.
 
 ```mermaid
 stateDiagram-v2
   direction LR
   [*] --> AI검수
-  state "AI 1차 검수<br/>state = ai_reviewed" as AI검수
-  state "멘토 배정<br/>state = assigned · SLA 영업일 마감" as 배정
-  state "재배정<br/>state = reassigned" as 재배정
-  state "멘토 검수 완료<br/>review = completed" as 완료
-  state "AI 폴백<br/>state = ai_fallback" as 폴백
+  state "AI가 먼저 봐줌" as AI검수
+  state "멘토에게 맡겨짐<br/>(검토 기한 시작)" as 배정
+  state "다른 멘토에게 다시 맡김" as 재배정
+  state "멘토 검토 끝남" as 완료
+  state "멘토를 못 구해<br/>AI가 대신 봐줌" as 폴백
 
-  AI검수 --> 배정 : 멘토 매칭 (deadline 부여)
-  배정 --> 완료 : 멘토 피드백 작성
-  재배정 --> 완료 : 대체 멘토 검수
-  배정 --> 재배정 : 마감 초과 · 대체 멘토 있음
-  배정 --> 폴백 : 마감 초과 · 대체 멘토 없음
-  재배정 --> 폴백 : 재차 마감 초과
+  AI검수 --> 배정 : 멘토 정해짐
+  배정 --> 완료 : 멘토가 조언을 남김
+  재배정 --> 완료 : 다른 멘토가 검토함
+  배정 --> 재배정 : 기한 넘김 · 다른 멘토 있음
+  배정 --> 폴백 : 기한 넘김 · 멘토 없음
+  재배정 --> 폴백 : 또 기한 넘김
   완료 --> [*]
   폴백 --> [*]
 
-  note right of AI검수 : 학생 제출 즉시<br/>AI 1차 피드백 생성
-  note right of 완료 : 학생은 AI+멘토<br/>피드백 결합 조회
+  note right of AI검수 : 과제를 내면<br/>바로 AI 조언이 달림
+  note right of 완료 : 학생은 AI 조언과<br/>멘토 조언을 함께 봄
 ```
 
 ---
 
-## 3. 프로세스(상태 전이) — 제휴사 가입 승인 게이트
+## 3. 업체가 가입하고 이용하기까지 (상태 그림)
 
-`partner.status` + 로그인 게이트 `users.is_active`. 승인 전에는 로그인 불가(005 신규).
+업체가 직접 가입해도, **운영자가 승인하기 전에는 로그인할 수 없습니다.**
 
 ```mermaid
 stateDiagram-v2
   direction LR
-  [*] --> 가입대기 : 자체가입 POST /partners/signup
-  state "가입 대기<br/>status = pending · is_active = 0" as 가입대기
-  state "활성<br/>status = active · is_active = 1" as 활성
-  state "거절<br/>status = rejected" as 거절
-  state "정지<br/>status = suspended · is_active = 0" as 정지
+  [*] --> 가입대기 : 업체가 직접 가입 신청
+  state "가입 신청함<br/>(아직 로그인 못 함)" as 가입대기
+  state "이용 가능<br/>(로그인 됨)" as 활성
+  state "가입 거절됨" as 거절
+  state "이용 정지됨" as 정지
 
-  가입대기 --> 활성 : 운영자 승인 (로그인 활성화)
-  가입대기 --> 거절 : 운영자 거절
-  활성 --> 정지 : 운영자 정지
-  정지 --> 활성 : 재승인
+  가입대기 --> 활성 : 운영자가 승인함
+  가입대기 --> 거절 : 운영자가 거절함
+  활성 --> 정지 : 운영자가 정지시킴
+  정지 --> 활성 : 다시 승인함
   거절 --> [*]
 
-  note right of 가입대기 : 승인 전 로그인 불가<br/>(승인 게이트)
-  note right of 활성 : /partner-portal 이용<br/>피드물·배너·성과
+  note right of 가입대기 : 승인 전에는<br/>로그인할 수 없음
+  note right of 활성 : 소식·광고 올리고<br/>반응을 확인함
 ```
 
 ---
 
-## 4. 프로세스(상태 전이) — 결제 · 멤버십
+## 4. 멤버십 결제 처리 (상태 그림)
 
-`payments.status` 상태머신(`canTransition` 맵 그대로). `paid` 시 멤버십 30일 활성·등급 변경.
+결제가 끝나면 멤버십 등급이 올라가고, 실패하면 등급은 그대로입니다.
 
 ```mermaid
 stateDiagram-v2
   direction LR
-  [*] --> 대기 : checkout (pending 결제 생성)
-  state "결제 대기<br/>pending" as 대기
-  state "결제 완료<br/>paid → 멤버십 30일 활성" as 완료
-  state "결제 실패<br/>failed" as 실패
-  state "취소<br/>canceled" as 취소
-  state "환불<br/>refunded" as 환불
+  [*] --> 대기 : 결제 시작
+  state "결제 진행 중" as 대기
+  state "결제 완료<br/>(멤버십 30일 시작)" as 완료
+  state "결제 실패" as 실패
+  state "결제 취소" as 취소
+  state "환불됨" as 환불
 
-  대기 --> 완료 : 승인 · 웹훅 paid<br/>(dev 무키는 즉시 / force_result=success)
-  대기 --> 실패 : 실패 · force_result=fail
-  완료 --> 취소 : 결제 취소
-  완료 --> 환불 : 환불
+  대기 --> 완료 : 결제가 승인됨
+  대기 --> 실패 : 결제가 안 됨
+  완료 --> 취소 : 결제를 취소함
+  완료 --> 환불 : 돈을 돌려줌
   실패 --> [*]
   취소 --> [*]
   환불 --> [*]
 
-  note right of 완료 : 등급 변경 반영<br/>(멤버십 활성)
-  note right of 실패 : 등급 미변경<br/>(failed 종결)
+  note right of 완료 : 멤버십 등급이 올라감
+  note right of 실패 : 등급은 그대로
 ```
 
 ---
 
-## 5. 데이터 모델(ERD) — 인증 · 계정 · 동의
+## 5. 정보 연결도 — 회원·계정
 
 ```mermaid
 erDiagram
-  users ||--o| students : "1:1 프로필"
-  users ||--o| mentors : "1:1"
-  users ||--o| university_staff : "1:1"
-  users ||--o| company_staff : "1:1"
-  users ||--o{ partner_account : "로그인 계정"
-  partner ||--o{ partner_account : "기관"
-  users ||--o{ refresh_tokens : "세션"
-  users ||--o{ consent_records : "동의 이력"
-  universities ||--o{ university_staff : ""
-  companies ||--o{ company_staff : ""
+  사용자 ||--o| 학생 : "한 명은 한 학생"
+  사용자 ||--o| 멘토 : "한 명은 한 멘토"
+  사용자 ||--o| 대학담당자 : "한 명은 한 담당자"
+  사용자 ||--o| 기업담당자 : "한 명은 한 담당자"
+  사용자 ||--o{ 업체계정 : "업체 로그인 계정"
+  교육활동업체 ||--o{ 업체계정 : "소속 업체"
+  사용자 ||--o{ 로그인기록 : "로그인 유지"
+  사용자 ||--o{ 동의기록 : "개인정보 동의"
+  대학 ||--o{ 대학담당자 : ""
+  기업 ||--o{ 기업담당자 : ""
 
-  users {
-    bigint id PK
-    varchar email UK
-    varchar role "student|mentor|university|enterprise|admin|edu_platform"
-    tinyint is_active "승인 게이트"
+  사용자 {
+    숫자 번호
+    글자 이메일
+    글자 역할 "학생·멘토·기업·운영자·업체"
+    참거짓 사용여부 "승인 전엔 로그인 잠김"
   }
-  students {
-    bigint user_id FK
-    varchar university
-    varchar major
-    tinyint year_in_school
-    varchar university_consent_scope
+  학생 {
+    글자 학교
+    글자 전공
+    숫자 학년
+    글자 정보공개_동의범위
   }
-  partner {
-    bigint id PK
-    varchar type "edu_platform 등"
-    varchar status "pending|active|rejected|suspended"
+  교육활동업체 {
+    글자 업체이름
+    글자 가입상태 "신청중·이용가능·거절·정지"
   }
-  partner_account {
-    bigint partner_id FK
-    bigint user_id FK
+  업체계정 {
+    숫자 업체번호
+    숫자 사용자번호
   }
-  mentors {
-    bigint user_id FK
-    varchar expertise
+  멘토 {
+    글자 전문분야
   }
 ```
 
-## 6. 데이터 모델(ERD) — 커리어 성장
+## 6. 정보 연결도 — 진로 성장
 
 ```mermaid
 erDiagram
-  students ||--o{ target_jobs : "목표 직무"
-  students ||--o{ activities : "활동 이력"
-  students ||--o{ gap_diagnoses : "갭 진단"
-  students ||--o{ roadmaps : "로드맵"
-  target_jobs ||--o{ roadmaps : ""
-  roadmaps ||--o{ roadmap_items : "추천 항목"
-  alumni_paths ||--o{ alumni_path_activities : "동문 경로"
-  students ||--o{ documents : "이력서/자소서"
-  missions ||--o{ submissions : ""
-  students ||--o{ submissions : "제출"
-  submissions ||--o{ feedbacks : "AI+멘토"
-  submissions ||--o| review_assignments : "멘토 배정"
+  학생 ||--o{ 목표직업 : "정한 목표"
+  학생 ||--o{ 활동기록 : "내 활동"
+  학생 ||--o{ 부족분석 : "부족한 점"
+  학생 ||--o{ 진로계획 : "맞춤 계획"
+  목표직업 ||--o{ 진로계획 : ""
+  진로계획 ||--o{ 계획항목 : "추천 할 일"
+  선배경로 ||--o{ 선배활동 : "선배가 한 활동"
+  학생 ||--o{ 문서 : "이력서·자기소개서"
+  과제 ||--o{ 제출물 : ""
+  학생 ||--o{ 제출물 : "낸 과제"
+  제출물 ||--o{ 조언 : "AI·멘토 조언"
+  제출물 ||--o| 검토배정 : "멘토 배정"
 
-  roadmaps {
-    bigint id PK
-    varchar source "cohort|fallback"
-    varchar cohort_key
-    int cohort_size
+  진로계획 {
+    글자 만든방식 "선배 사례 / 직무 전체"
+    글자 비슷한선배묶음
+    숫자 선배인원수
   }
-  roadmap_items {
-    varchar title
-    varchar rationale "추천 근거"
-    decimal score
+  계획항목 {
+    글자 할일
+    글자 추천이유
+    숫자 우선순위점수
   }
-  feedbacks {
-    varchar kind "ai|mentor"
-    bigint mentor_id FK
+  조언 {
+    글자 종류 "AI / 멘토"
+    숫자 멘토번호
   }
-  review_assignments {
-    bigint mentor_id FK
-    varchar status "pending|completed|reassigned|ai_fallback"
+  검토배정 {
+    숫자 멘토번호
+    글자 상태 "대기·완료·재배정·AI대체"
   }
 ```
 
-## 7. 데이터 모델(ERD) — 수익화 · 제휴 · 광고
+## 7. 정보 연결도 — 결제·광고·제휴
 
 ```mermaid
 erDiagram
-  students ||--o{ memberships : "구독"
-  users ||--o{ payments : "결제"
-  payments ||--o| memberships : ""
-  partner ||--o{ partner_banner : "배너"
-  partner_banner ||--o{ banner_conversion : "클릭/전환"
-  companies ||--o{ job_ad : "채용 광고"
-  job_ad ||--o{ job_ad_impression : "노출"
-  partner ||--o{ external_feed_item : "발행 source=partner-{id}"
-  students ||--o{ paid_service_order : "유료 서비스"
+  학생 ||--o{ 멤버십 : "구독"
+  사용자 ||--o{ 결제 : "결제 내역"
+  결제 ||--o| 멤버십 : ""
+  교육활동업체 ||--o{ 광고배너 : "올린 광고"
+  광고배너 ||--o{ 광고반응 : "클릭·신청"
+  기업 ||--o{ 채용공고 : "올린 공고"
+  채용공고 ||--o{ 공고노출 : "학생에게 보여줌"
+  교육활동업체 ||--o{ 외부소식 : "올린 소식"
+  학생 ||--o{ 유료서비스신청 : "유료 서비스"
 
-  payments {
-    bigint id PK
-    varchar kind
-    int amount
-    varchar status "pending|paid|failed|canceled|refunded"
+  결제 {
+    글자 종류
+    숫자 금액
+    글자 상태 "진행중·완료·실패·취소·환불"
   }
-  memberships {
-    varchar plan
-    datetime ends_at
-    tinyint auto_renew
+  멤버십 {
+    글자 등급
+    날짜 종료일
+    참거짓 자동갱신
   }
-  partner_banner {
-    varchar title
-    varchar landing_url
-    boolean active
+  광고배너 {
+    글자 제목
+    글자 연결주소
+    참거짓 노출중
   }
-  banner_conversion {
-    varchar event "click|convert"
+  광고반응 {
+    글자 종류 "클릭 / 신청"
   }
-  external_feed_item {
-    varchar kind "certification|contest"
-    varchar source
-    varchar freshness "fresh|stale"
+  외부소식 {
+    글자 종류 "자격증·교육 / 공모전·대외활동"
+    글자 출처
+    글자 신선도 "최신 / 오래됨"
   }
 ```
 
 ---
 
-## 부록 — 발표 시 강조 포인트
+## 부록 — 발표 한 줄 요약
 
-| 영역 | 핵심 메시지 |
-|------|-------------|
-| **유스케이스** | 6개 역할 모두 로그인→고유 기능 동작. 멘토 검수·제휴사 포털이 005 신규 |
-| **상태 전이(검수)** | SLA 미준수 시 자동 재배정 → 그래도 안 되면 AI 폴백으로 학생 경험 보장 |
-| **상태 전이(가입)** | 자체가입은 pending+is_active=0 → 운영자 승인 게이트 |
-| **상태 전이(결제)** | 실제 `canTransition` 상태머신, 비가역 전이(failed/refunded 종결) |
-| **ERD** | users 1:1 프로필 분리, 동의 범위(consent_scope) 기반 노출 거버넌스 |
+| 그림 | 한마디로 |
+|------|----------|
+| **누가 무엇을** | 학생·멘토·대학·기업·업체·운영자가 각자 할 일이 다 동작합니다 |
+| **과제 단계** | 멘토를 못 구해도 AI가 대신 봐줘서 누구나 조언을 받습니다 |
+| **업체 가입** | 직접 가입해도 운영자 승인 전엔 로그인 못 합니다 (안전장치) |
+| **결제 처리** | 되돌릴 수 없는 단계(실패·환불)까지 분명하게 나눴습니다 |
+| **정보 연결** | 회원 정보는 동의한 범위 안에서만 보이도록 연결했습니다 |

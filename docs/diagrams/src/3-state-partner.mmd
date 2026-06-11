@@ -1,18 +1,17 @@
-%% 상태 전이 — 제휴사 가입(partner.status) + 로그인 게이트(users.is_active)
-%% 출처: backend/src/modules/partners/router.ts
+%% 교육·활동 업체가 가입하고 이용하기까지 — 쉬운 말 버전
 stateDiagram-v2
   direction LR
-  [*] --> 가입대기 : 자체가입 POST /partners/signup
-  state "가입 대기<br/>status = pending · is_active = 0" as 가입대기
-  state "활성<br/>status = active · is_active = 1" as 활성
-  state "거절<br/>status = rejected" as 거절
-  state "정지<br/>status = suspended · is_active = 0" as 정지
+  [*] --> 가입대기 : 업체가 직접 가입 신청
+  state "가입 신청함<br/>(아직 로그인 못 함)" as 가입대기
+  state "이용 가능<br/>(로그인 됨)" as 활성
+  state "가입 거절됨" as 거절
+  state "이용 정지됨" as 정지
 
-  가입대기 --> 활성 : 운영자 승인 (로그인 활성화)
-  가입대기 --> 거절 : 운영자 거절
-  활성 --> 정지 : 운영자 정지
-  정지 --> 활성 : 재승인
+  가입대기 --> 활성 : 운영자가 승인함
+  가입대기 --> 거절 : 운영자가 거절함
+  활성 --> 정지 : 운영자가 정지시킴
+  정지 --> 활성 : 다시 승인함
   거절 --> [*]
 
-  note right of 가입대기 : 승인 전 로그인 불가<br/>(승인 게이트)
-  note right of 활성 : /partner-portal 이용<br/>피드물·배너·성과
+  note right of 가입대기 : 승인 전에는<br/>로그인할 수 없음
+  note right of 활성 : 소식·광고 올리고<br/>반응을 확인함

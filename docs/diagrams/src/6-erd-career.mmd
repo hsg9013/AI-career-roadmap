@@ -1,33 +1,33 @@
+%% 어떤 정보들이 서로 연결되는지 — 진로 성장 편 (쉬운 말 버전)
 erDiagram
-  students ||--o{ target_jobs : "목표 직무"
-  students ||--o{ activities : "활동 이력"
-  students ||--o{ gap_diagnoses : "갭 진단"
-  students ||--o{ roadmaps : "로드맵"
-  target_jobs ||--o{ roadmaps : ""
-  roadmaps ||--o{ roadmap_items : "추천 항목"
-  alumni_paths ||--o{ alumni_path_activities : "동문 경로"
-  students ||--o{ documents : "이력서/자소서"
-  missions ||--o{ submissions : ""
-  students ||--o{ submissions : "제출"
-  submissions ||--o{ feedbacks : "AI+멘토"
-  submissions ||--o| review_assignments : "멘토 배정"
+  학생 ||--o{ 목표직업 : "정한 목표"
+  학생 ||--o{ 활동기록 : "내 활동"
+  학생 ||--o{ 부족분석 : "부족한 점"
+  학생 ||--o{ 진로계획 : "맞춤 계획"
+  목표직업 ||--o{ 진로계획 : ""
+  진로계획 ||--o{ 계획항목 : "추천 할 일"
+  선배경로 ||--o{ 선배활동 : "선배가 한 활동"
+  학생 ||--o{ 문서 : "이력서·자기소개서"
+  과제 ||--o{ 제출물 : ""
+  학생 ||--o{ 제출물 : "낸 과제"
+  제출물 ||--o{ 조언 : "AI·멘토 조언"
+  제출물 ||--o| 검토배정 : "멘토 배정"
 
-  roadmaps {
-    bigint id PK
-    varchar source "cohort|fallback"
-    varchar cohort_key
-    int cohort_size
+  진로계획 {
+    글자 만든방식 "선배 사례 / 직무 전체"
+    글자 비슷한선배묶음
+    숫자 선배인원수
   }
-  roadmap_items {
-    varchar title
-    varchar rationale "추천 근거"
-    decimal score
+  계획항목 {
+    글자 할일
+    글자 추천이유
+    숫자 우선순위점수
   }
-  feedbacks {
-    varchar kind "ai|mentor"
-    bigint mentor_id FK
+  조언 {
+    글자 종류 "AI / 멘토"
+    숫자 멘토번호
   }
-  review_assignments {
-    bigint mentor_id FK
-    varchar status "pending|completed"
+  검토배정 {
+    숫자 멘토번호
+    글자 상태 "대기·완료·재배정·AI대체"
   }
