@@ -157,12 +157,24 @@ export const useMissionsStore = defineStore('missions', () => {
     }
   }
 
+  // 005 고도화: 내 미션 제출물 삭제(피드백·검수배정 함께 정리).
+  async function removeSubmission(submissionId: number): Promise<void> {
+    lastError.value = null;
+    try {
+      await getApi().delete(`/submissions/${submissionId}`);
+      await fetchMySubmissions();
+    } catch (err) {
+      lastError.value = extractError(err);
+      throw err;
+    }
+  }
+
   async function feedback(submissionId: number): Promise<SubmissionFeedback> {
     const { data } = await getApi().get<SubmissionFeedback>(`/submissions/${submissionId}/feedback`);
     return data;
   }
 
-  return { missions, mySubmissions, loading, lastError, fetchAll, submit, fetchMySubmissions, feedback };
+  return { missions, mySubmissions, loading, lastError, fetchAll, submit, fetchMySubmissions, removeSubmission, feedback };
 });
 
 export interface Notification {

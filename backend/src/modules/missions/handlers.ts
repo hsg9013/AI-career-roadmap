@@ -5,6 +5,7 @@ import {
   submitMission,
   getSubmissionFeedback,
   listMySubmissions,
+  deleteSubmission,
   addMentorFeedback,
   listMentorAssignments,
   listMentorStudents,
@@ -54,6 +55,17 @@ export async function submitHandler(req: Request, res: Response, next: NextFunct
 export async function mySubmissionsHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     res.status(200).json(await listMySubmissions(userId(req)));
+  } catch (err) {
+    next(err);
+  }
+}
+
+// 005 고도화: 학생 본인 미션 제출물 삭제.
+export async function deleteSubmissionHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { submissionId } = req.params as unknown as z.infer<typeof feedbackParamsSchema>;
+    await deleteSubmission(userId(req), submissionId);
+    res.status(204).end();
   } catch (err) {
     next(err);
   }

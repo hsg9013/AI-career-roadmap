@@ -298,6 +298,25 @@ async function portalCreateFeedHandler(req: Request, res: Response, next: NextFu
   }
 }
 
+// 발행한 피드물(콘텐츠) 삭제 — 본인 source 만. 학생 피드(/feeds)에서도 사라진다.
+const feedItemParams = z.object({ id: z.coerce.number().int().positive() });
+async function portalDeleteFeedHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const pid = await resolvePartnerId(partnerUserId(req));
+    const { id } = req.params as unknown as z.infer<typeof feedItemParams>;
+    const [r] = await getPool().query(
+      'DELETE FROM external_feed_item WHERE id = ? AND source = ?',
+      [id, `partner-${pid}`],
+    );
+    if ((r as { affectedRows: number }).affectedRows === 0) {
+      throw new HttpError(404, 'FEED_ITEM_NOT_FOUND', '피드물을 찾을 수 없습니다.');
+    }
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function portalListBannersHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const pid = await resolvePartnerId(partnerUserId(req));
@@ -355,6 +374,7 @@ partnerPortalRouter.use(requireAuth, requireRole('edu_platform'));
 partnerPortalRouter.get('/overview', portalOverviewHandler);
 partnerPortalRouter.get('/feed-items', portalListFeedHandler);
 partnerPortalRouter.post('/feed-items', validate({ body: feedItemBody }), portalCreateFeedHandler);
+partnerPortalRouter.delete('/feed-items/:id', validate({ params: feedItemParams }), portalDeleteFeedHandler);
 partnerPortalRouter.get('/banners', portalListBannersHandler);
 partnerPortalRouter.post('/banners', validate({ body: bannerBody }), portalCreateBannerHandler);
 partnerPortalRouter.patch('/banners/:id', validate({ params: bannerToggleParams, body: bannerToggleBody }), portalToggleBannerHandler);

@@ -38,6 +38,15 @@ async function addFeed(): Promise<void> {
     await loadAll();
   } finally { busy.value = false; }
 }
+async function removeFeed(f: FeedItem): Promise<void> {
+  if (!window.confirm(`'${f.title}' 콘텐츠를 삭제할까요? 학생 피드에서도 사라집니다.`)) return;
+  busy.value = true; msg.value = '';
+  try {
+    await getApi().delete(`/partner-portal/feed-items/${f.id}`);
+    msg.value = '콘텐츠를 삭제했습니다.';
+    await loadAll();
+  } finally { busy.value = false; }
+}
 async function addBanner(): Promise<void> {
   if (!bannerForm.value.title.trim() || !bannerForm.value.landing_url.trim()) return;
   busy.value = true; msg.value = '';
@@ -94,6 +103,7 @@ const KIND_LABEL: Record<string, string> = { certification: '자격증·교육',
         <span class="kind">{{ KIND_LABEL[f.kind] ?? f.kind }}</span>
         <span class="title">{{ f.title }}</span>
         <span class="pill" :class="f.freshness">{{ f.freshness === 'fresh' ? '최신' : '최신 아님' }}</span>
+        <button class="del" :disabled="busy" title="콘텐츠 삭제" @click="removeFeed(f)">삭제</button>
       </li>
       <li v-if="!feeds.length" class="muted empty">발행한 콘텐츠가 없습니다.</li>
     </ul>
@@ -146,6 +156,9 @@ const KIND_LABEL: Record<string, string> = { certification: '자격증·교육',
 .pill { margin-left: auto; font-size: 0.72rem; padding: 0.12rem 0.5rem; border-radius: 999px; }
 .pill.fresh { background: #dcfce7; color: #166534; }
 .pill.stale { background: #fef3c7; color: #92400e; }
+.row .del { border: 1px solid #fecaca; background: #fff; color: #b91c1c; border-radius: 6px; padding: 0.15rem 0.5rem; font-size: 0.74rem; cursor: pointer; }
+.row .del:hover { background: #fef2f2; }
+.row .del:disabled { opacity: 0.5; cursor: not-allowed; }
 .toggle { border: 1px solid #d1d5db; background: #fff; color: #6b7280; border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.78rem; cursor: pointer; }
 .toggle.on { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
 @media (max-width: 720px) { .summary { grid-template-columns: 1fr 1fr; } }

@@ -26,6 +26,11 @@ const STATE_LABEL: Record<string, string> = {
 const REVIEW_LABEL: Record<string, string> = {
   pending: '검수 대기', completed: '검수 완료', reassigned: '재배정', ai_fallback: 'AI 대체',
 };
+async function removeSubmission(submissionId: number): Promise<void> {
+  if (!window.confirm('이 제출물을 삭제할까요? 피드백·검수 배정도 함께 삭제되며 되돌릴 수 없습니다.')) return;
+  if (expandedSub.value === submissionId) { expandedSub.value = null; subFeedback.value = null; }
+  await store.removeSubmission(submissionId).catch(() => undefined);
+}
 async function toggleFeedback(submissionId: number): Promise<void> {
   if (expandedSub.value === submissionId) {
     expandedSub.value = null;
@@ -230,6 +235,7 @@ async function submit(): Promise<void> {
                 {{ REVIEW_LABEL[s.review_status] ?? s.review_status }}
               </span>
               <span v-if="s.has_mentor_feedback" class="badge-mentor">멘토 코멘트 ✓</span>
+              <button class="sub-del" title="제출물 삭제" @click.stop="removeSubmission(s.submission_id)">삭제</button>
               <span class="toggle">{{ expandedSub === s.submission_id ? '▲' : '▼' }}</span>
             </div>
           </div>
@@ -284,6 +290,8 @@ async function submit(): Promise<void> {
 .sub-meta .review.completed { background: #dcfce7; color: #166534; }
 .badge-mentor { padding: 0.1rem 0.45rem; border-radius: 999px; background: #ede9fe; color: #5b21b6; font-weight: 600; }
 .sub-meta .toggle { color: #9ca3af; }
+.sub-del { border: 1px solid #fecaca; background: #fff; color: #b91c1c; border-radius: 6px; padding: 0.12rem 0.45rem; font-size: 0.72rem; cursor: pointer; }
+.sub-del:hover { background: #fef2f2; }
 .sub-fb { border-top: 1px solid #f3f4f6; padding: 0.7rem 0.9rem; background: #fcfcfd; }
 .fb-item { border-left: 3px solid #93c5fd; padding: 0.3rem 0 0.3rem 0.7rem; margin: 0.4rem 0; }
 .fb-item.mentor { border-left-color: #8b5cf6; }

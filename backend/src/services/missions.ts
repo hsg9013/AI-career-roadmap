@@ -239,6 +239,19 @@ export async function listMySubmissions(userId: number): Promise<MySubmission[]>
   }));
 }
 
+// 005 고도화: 학생 본인 미션 제출물 삭제. feedbacks·review_assignments 는 FK CASCADE 로 함께 삭제.
+export async function deleteSubmission(userId: number, submissionId: number): Promise<void> {
+  const [r] = await getPool().query(
+    `DELETE s FROM submissions s
+     JOIN students st ON st.id = s.student_id
+     WHERE s.id = ? AND st.user_id = ?`,
+    [submissionId, userId],
+  );
+  if ((r as { affectedRows: number }).affectedRows === 0) {
+    throw new HttpError(404, 'SUBMISSION_NOT_FOUND', 'Submission not found for this user');
+  }
+}
+
 // 005 US4(H4): 현직자(멘토) 심층 코멘트 작성 — feedbacks(kind='mentor')로 저장하고
 // review_assignment 를 completed 로 마감한다. 학생은 기존 getSubmissionFeedback 으로 결합 조회한다.
 export async function addMentorFeedback(
