@@ -14,7 +14,7 @@ import { runInference, type AiSource } from './ai/infer.js';
 import { logger } from '../lib/logger.js';
 import { track } from '../lib/analytics.js';
 
-// T026: 선배 경로 기반 합격 로드맵 생성 (FR-005) + 거부 반영 (FR-006), k-익명성 게이트 (FR-019)
+// T026: 합격자 경로 기반 합격 로드맵 생성 (FR-005) + 거부 반영 (FR-006), k-익명성 게이트 (FR-019)
 //
 // 규칙 기반 추천(R-1):
 //   1) 학생 목표 직무(industry/role)와 학년대(grade_band)로 코호트 결정
@@ -74,12 +74,12 @@ export function buildRoadmapRationale(
   const basis: RoadmapRationale['basis'] = source === 'cohort' ? 'personalized' : 'general_guide';
   let explanation: string;
   if (source === 'cohort') {
-    explanation = `같은 직무(${jobRole})·같은 학년대 합격 선배 ${cohortSize}명의 경로와 직무 요구역량 비중을 종합해 시기별로 추천했습니다.`;
+    explanation = `같은 직무(${jobRole})·같은 학년대 합격자 ${cohortSize}명의 경로와 직무 요구역량 비중을 종합해 시기별로 추천했습니다.`;
   } else if (cohortSize >= K_ANONYMITY_MIN) {
     // 학년대 표본은 부족하나 직무 전체 표본은 충분 → 직무 전체 경로 기반(역할단위 폴백)
-    explanation = `같은 학년대 표본은 부족해, 같은 직무(${jobRole}) 전체 합격 선배 ${cohortSize}명의 경로와 직무 요구역량을 기반으로 추천했습니다. 활동·스펙을 더 입력하면 개인화 정확도가 올라갑니다.`;
+    explanation = `같은 학년대 표본은 부족해, 같은 직무(${jobRole}) 전체 합격자 ${cohortSize}명의 경로와 직무 요구역량을 기반으로 추천했습니다. 활동·스펙을 더 입력하면 개인화 정확도가 올라갑니다.`;
   } else {
-    explanation = `합격 선배 표본이 최소 기준(${K_ANONYMITY_MIN}명) 미만이라 직무 요구역량 기준 일반 가이드를 제공합니다. 활동·스펙을 더 입력하면 개인화 추천 정확도가 올라갑니다.`;
+    explanation = `합격자 표본이 최소 기준(${K_ANONYMITY_MIN}명) 미만이라 직무 요구역량 기준 일반 가이드를 제공합니다. 활동·스펙을 더 입력하면 개인화 추천 정확도가 올라갑니다.`;
   }
   const weight_note =
     `'가중치'는 직무에서 더 중요한 역량일수록 추천에 더 크게 반영된다는 의미입니다(값이 높을수록 우선순위가 높음).`;
@@ -167,7 +167,7 @@ async function loadRejections(
   return { refs, skills };
 }
 
-// 코호트(또는 광역) 선배 활동 빈도 집계.
+// 코호트(또는 광역) 합격자 활동 빈도 집계.
 async function aggregateAlumni(
   conn: PoolConnection,
   industry: string,
@@ -222,7 +222,7 @@ function buildItems(
       period: row.period,
       activity_type: row.activity_type,
       title,
-      rationale: `합격 선배 ${base}명이 ${row.period}에 수행 — ${skillNote}`,
+      rationale: `합격자 ${base}명이 ${row.period}에 수행 — ${skillNote}`,
       target_skill: skill,
       score,
       status: 'recommended',
@@ -232,7 +232,7 @@ function buildItems(
   return items;
 }
 
-// 선배 표본이 부족할 때: 직무 요구 역량 사전 기반 일반 추천 (alumni 미사용).
+// 합격자 표본이 부족할 때: 직무 요구 역량 사전 기반 일반 추천 (alumni 미사용).
 async function buildGenericItems(
   conn: PoolConnection,
   industry: string,
@@ -370,13 +370,13 @@ export async function generateRoadmap(userId: number, targetJobId: number): Prom
         source = 'fallback';
         cohortSize = roleN;
         usedKey = `${tj.industry_code}/${tj.job_role_code}/*`;
-        notice = `해당 학년대 선배 표본(${cohortN}명)이 최소 기준(${K_ANONYMITY_MIN}명) 미만이라 직무 전체 선배 경로로 추천했습니다.`;
+        notice = `해당 학년대 합격자 표본(${cohortN}명)이 최소 기준(${K_ANONYMITY_MIN}명) 미만이라 직무 전체 합격자 경로로 추천했습니다.`;
         rawItems = buildItems(await aggregateAlumni(conn, tj.industry_code, tj.job_role_code), gap, rej);
       } else {
         source = 'fallback';
         cohortSize = roleN;
         usedKey = null;
-        notice = `선배 표본(${roleN}명)이 최소 기준(${K_ANONYMITY_MIN}명) 미만이라 직무 요구 역량 기반 일반 추천을 제공합니다.`;
+        notice = `합격자 표본(${roleN}명)이 최소 기준(${K_ANONYMITY_MIN}명) 미만이라 직무 요구 역량 기반 일반 추천을 제공합니다.`;
         rawItems = await buildGenericItems(conn, tj.industry_code, tj.job_role_code, gap, rej);
       }
     }

@@ -35,7 +35,6 @@ const links = computed(() => {
     { to: '/missions', label: '미션' },
     { to: '/notifications', label: '알림' },
     { to: '/membership', label: '멤버십' },
-    { to: '/donate', label: '합격 경험 공유' },
   ];
 });
 </script>

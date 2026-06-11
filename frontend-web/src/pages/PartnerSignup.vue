@@ -72,9 +72,9 @@ async function signup(): Promise<void> {
 
     <p v-if="error" class="error">{{ error }}</p>
     <div v-if="result" class="ok">
-      <p>✓ 가입 신청 완료 (상태: {{ result.status }})</p>
-      <p v-if="result.account_created" class="muted">로그인 계정({{ result.role }})이 발급되었습니다. 운영자 활성화 후 전체 기능을 사용할 수 있습니다.</p>
-      <p v-else class="muted">파트너 등록이 접수되었습니다. 운영자 활성화를 기다려 주세요.</p>
+      <p>✓ 가입 신청 완료 (상태: 승인 대기)</p>
+      <p v-if="result.account_created" class="muted">로그인 계정({{ result.role }})이 생성되었습니다. <b>운영자 승인 전에는 로그인할 수 없으며</b>, 승인되면 바로 로그인하실 수 있습니다.</p>
+      <p v-else class="muted">파트너 등록이 접수되었습니다. 운영자 승인을 기다려 주세요.</p>
     </div>
   </section>
 </template>

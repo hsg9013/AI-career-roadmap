@@ -5,7 +5,26 @@ import { useAdminStore, type UsageBucket } from 'frontend-shared';
 // 관리자 대시보드 — 사용 지표 + 004 파트너/라이선스 콘솔(운영자 수동 등록).
 
 const admin = useAdminStore();
-onMounted(() => admin.fetchUsage().catch(() => undefined));
+onMounted(() => {
+  admin.fetchUsage().catch(() => undefined);
+  admin.fetchPartners('pending').catch(() => undefined); // 010: 승인 대기 파트너
+});
+
+// 010: 파트너 가입 승인/거절
+const approveMsg = ref('');
+async function decide(id: number, status: 'active' | 'rejected'): Promise<void> {
+  approveMsg.value = '';
+  try {
+    await admin.setPartnerStatus(id, status);
+    approveMsg.value = status === 'active' ? '승인되었습니다 (로그인 활성화).' : '거절 처리되었습니다.';
+    await admin.fetchPartners('pending');
+  } catch {
+    approveMsg.value = '처리 실패';
+  }
+}
+const PARTNER_TYPE_LABEL: Record<string, string> = {
+  university: '대학', company: '기업', mentor_org: '멘토 조직', edu_platform: '교육·활동 플랫폼', tech_partner: '기술 협력사',
+};
 
 function maxOf(rows: UsageBucket[]): number {
   return rows.reduce((m, r) => Math.max(m, r.count), 0) || 1;
@@ -89,6 +108,29 @@ async function submitLicense(): Promise<void> {
       </div>
     </template>
 
+    <div class="approval">
+      <h3>파트너 가입 승인 대기 <span class="muted">(자체 가입 — 승인 전 로그인 불가)</span></h3>
+      <p v-if="approveMsg" class="ok">{{ approveMsg }}</p>
+      <table v-if="admin.partners.length" class="ptable">
+        <thead>
+          <tr><th>기관/이름</th><th>유형</th><th>담당자</th><th>신청일</th><th>처리</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="p in admin.partners" :key="p.id">
+            <td>{{ p.name }}</td>
+            <td>{{ PARTNER_TYPE_LABEL[p.type] ?? p.type }}</td>
+            <td>{{ p.email ?? '(로그인 계정 없음)' }}</td>
+            <td class="muted">{{ p.created_at?.slice(0, 10) }}</td>
+            <td class="actions">
+              <button class="approve" @click="decide(p.id, 'active')">승인</button>
+              <button class="reject" @click="decide(p.id, 'rejected')">거절</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="muted">승인 대기 중인 파트너가 없습니다.</p>
+    </div>
+
     <div class="console">
       <h3>파트너·라이선스 콘솔 <span class="muted">(운영자 수동 등록)</span></h3>
       <div class="forms">
@@ -145,6 +187,14 @@ async function submitLicense(): Promise<void> {
 .fill.user { background: #d97706; }
 .val { text-align: right; color: #111; font-variant-numeric: tabular-nums; }
 @media (max-width: 720px) { .charts { grid-template-columns: 1fr; } }
+.approval { margin-top: 2rem; border-top: 1px solid #e5e7eb; padding-top: 1.2rem; }
+.approval h3 { font-size: 1.05rem; }
+.ptable { width: 100%; border-collapse: collapse; margin-top: 0.6rem; font-size: 0.88rem; }
+.ptable th, .ptable td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid #f3f4f6; }
+.ptable th { color: #6b7280; font-weight: 600; }
+.ptable .actions { display: flex; gap: 0.4rem; }
+.ptable .approve { background: #16a34a; color: #fff; border: 0; border-radius: 6px; padding: 0.3rem 0.7rem; cursor: pointer; }
+.ptable .reject { background: #fff; color: #b91c1c; border: 1px solid #fecaca; border-radius: 6px; padding: 0.3rem 0.7rem; cursor: pointer; }
 .console { margin-top: 2rem; border-top: 1px solid #e5e7eb; padding-top: 1.2rem; }
 .console h3 { font-size: 1.05rem; }
 .forms { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.8rem; }

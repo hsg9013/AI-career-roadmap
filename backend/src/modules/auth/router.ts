@@ -8,8 +8,6 @@ import {
   loginHandler,
   refreshHandler,
   logoutHandler,
-  socialNaverSchema,
-  socialNaverHandler,
   schoolEmailSchema,
   schoolEmailVerifyHandler,
   schoolEmailConfirmSchema,
@@ -30,9 +28,6 @@ router.post(
 router.post('/login', validate({ body: loginSchema }), loginHandler);
 router.post('/refresh', refreshHandler);
 router.post('/logout', logoutHandler);
-
-// 소셜 로그인(무인증) — code 로 계정 생성/연결.
-router.post('/social/naver', validate({ body: socialNaverSchema }), socialNaverHandler);
 
 // 학교 이메일 검증 — 요청·상태는 인증 필요, 확인(이메일 링크)은 토큰만으로.
 router.post('/school-email/verify', requireAuth, validate({ body: schoolEmailSchema }), schoolEmailVerifyHandler);

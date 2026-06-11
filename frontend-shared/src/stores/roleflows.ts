@@ -73,6 +73,17 @@ export interface UsageBreakdown {
   byUser: UsageBucket[];
   total: number;
 }
+// 010: 파트너 가입 승인 행(목록·승인용)
+export interface PartnerRow {
+  id: number;
+  type: string;
+  name: string;
+  status: 'pending' | 'active' | 'rejected' | 'suspended';
+  created_at: string;
+  user_id: number | null;
+  email: string | null;
+  is_active: number | null;
+}
 export const useAdminStore = defineStore('admin', () => {
   const usage = ref<UsageBreakdown | null>(null);
   const loading = ref(false);
@@ -122,7 +133,34 @@ export const useAdminStore = defineStore('admin', () => {
       throw e;
     }
   }
-  return { usage, loading, lastError, lastPartnerId, fetchUsage, createPartner, createLicense };
+  // 010: 파트너 가입 승인 — 목록 조회 + 상태 변경(승인/거절)
+  const partners = ref<PartnerRow[]>([]);
+  async function fetchPartners(status?: 'pending' | 'active' | 'rejected' | 'suspended'): Promise<void> {
+    lastError.value = null;
+    try {
+      const { data } = await getApi().get(`/admin/partners${status ? `?status=${status}` : ''}`);
+      partners.value = (data as { items: PartnerRow[] }).items;
+    } catch (e) {
+      lastError.value = err(e);
+      throw e;
+    }
+  }
+  async function setPartnerStatus(
+    id: number,
+    status: 'active' | 'rejected' | 'suspended',
+  ): Promise<void> {
+    lastError.value = null;
+    try {
+      await getApi().patch(`/admin/partners/${id}/status`, { status });
+    } catch (e) {
+      lastError.value = err(e);
+      throw e;
+    }
+  }
+  return {
+    usage, loading, lastError, lastPartnerId, partners,
+    fetchUsage, createPartner, createLicense, fetchPartners, setPartnerStatus,
+  };
 });
 
 // US8/US3 결제·정산

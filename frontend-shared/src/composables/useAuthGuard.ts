@@ -14,5 +14,10 @@ export const requireAuthGuard: NavigationGuard = (to) => {
   if (required && !required.every((s) => auth.hasScope(s))) {
     return { name: 'forbidden' };
   }
+  // 특정 역할 전용(meta.roles) — 예: 합격 경험 공유는 멘토(현직자)만.
+  const roles = to.meta?.roles as string[] | undefined;
+  if (roles && roles.length > 0 && !(auth.user && roles.includes(auth.user.role))) {
+    return { name: 'forbidden' };
+  }
   return true;
 };

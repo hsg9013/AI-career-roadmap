@@ -84,9 +84,7 @@ const EnvSchema = z.object({
 
   OAUTH_GOOGLE_CLIENT_ID: z.string().optional().default(''),
   OAUTH_GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
-  OAUTH_NAVER_CLIENT_ID: z.string().optional().default(''),
-  OAUTH_NAVER_CLIENT_SECRET: z.string().optional().default(''),
-  // 003 US6: 학교 이메일 확인 링크·소셜 콜백이 가리킬 웹 기준 URL.
+  // 003 US6: 학교 이메일 확인 링크가 가리킬 웹 기준 URL.
   WEB_BASE_URL: z.string().default('https://p16.sumzip.com'),
 
   // 003 US5: 외부 수집 피드 — 공식 오픈API·제휴 피드 URL만(크롤링 금지). 미설정 시 dev 샘플 수집.

@@ -78,8 +78,9 @@ async function signupHandler(req: Request, res: Response, next: NextFunction): P
         const [ex] = await conn.query('SELECT id FROM users WHERE email = ? LIMIT 1', [b.contact_email]);
         if ((ex as unknown[]).length) throw new HttpError(409, 'EMAIL_EXISTS', '이미 가입된 이메일입니다.');
         const hash = await bcrypt.hash(b.password, 10);
+        // 010: 자체 가입 계정은 비활성(is_active=0)으로 생성 → 운영자 승인 전까지 로그인 불가(승인 게이트).
         const [uins] = await conn.query(
-          'INSERT INTO users (email, password_hash, role, email_verified, is_active) VALUES (?, ?, ?, 0, 1)',
+          'INSERT INTO users (email, password_hash, role, email_verified, is_active) VALUES (?, ?, ?, 0, 0)',
           [b.contact_email, hash, role],
         );
         await conn.query('INSERT INTO partner_account (partner_id, user_id) VALUES (?, ?)', [
@@ -129,8 +130,65 @@ async function createPartnerHandler(req: Request, res: Response, next: NextFunct
   }
 }
 
+// ── 010: 파트너 가입 승인(운영자) ──
+// 자체 가입은 partner.status='pending' + 계정 is_active=0 으로 저장된다.
+// 운영자가 승인(active)하면 연결된 로그인 계정을 활성화하고, 거절/정지는 비활성 유지.
+const listPartnersQuery = z.object({
+  status: z.enum(['pending', 'active', 'rejected', 'suspended']).optional(),
+});
+async function listPartnersHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { status } = req.query as z.infer<typeof listPartnersQuery>;
+    const [rows] = await getPool().query(
+      `SELECT p.id, p.type, p.name, p.status, p.created_at,
+              pa.user_id, u.email, u.is_active
+       FROM partner p
+       LEFT JOIN partner_account pa ON pa.partner_id = p.id
+       LEFT JOIN users u ON u.id = pa.user_id
+       ${status ? 'WHERE p.status = ?' : ''}
+       ORDER BY p.created_at DESC, p.id DESC
+       LIMIT 200`,
+      status ? [status] : [],
+    );
+    res.status(200).json({ items: rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+const partnerStatusParams = z.object({ id: z.coerce.number().int().positive() });
+const partnerStatusBody = z.object({ status: z.enum(['active', 'rejected', 'suspended']) });
+async function setPartnerStatusHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { id } = req.params as unknown as z.infer<typeof partnerStatusParams>;
+    const { status } = req.body as z.infer<typeof partnerStatusBody>;
+    await withTransaction(async (conn) => {
+      const [upd] = await conn.query('UPDATE partner SET status = ? WHERE id = ?', [status, id]);
+      if ((upd as { affectedRows: number }).affectedRows === 0) {
+        throw new HttpError(404, 'PARTNER_NOT_FOUND', '파트너를 찾을 수 없습니다.');
+      }
+      // 승인 시 연결된 로그인 계정 활성화, 거절·정지는 비활성화.
+      const active = status === 'active' ? 1 : 0;
+      await conn.query(
+        `UPDATE users u JOIN partner_account pa ON pa.user_id = u.id
+         SET u.is_active = ? WHERE pa.partner_id = ?`,
+        [active, id],
+      );
+    });
+    res.status(200).json({ id, status });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export const adminPartnersRouter: Router = Router();
 adminPartnersRouter.use(requireAuth, requireRole('admin'));
+adminPartnersRouter.get('/', validate({ query: listPartnersQuery }), listPartnersHandler);
+adminPartnersRouter.patch(
+  '/:id/status',
+  validate({ params: partnerStatusParams, body: partnerStatusBody }),
+  setPartnerStatusHandler,
+);
 adminPartnersRouter.post('/', validate({ body: partnerInput }), createPartnerHandler);
 
 // ── 라이선스 등록(운영자) US9 ──

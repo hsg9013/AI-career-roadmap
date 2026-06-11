@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useStudentStore, useMembershipStore, GapDiagnosisChart, type TargetJob } from 'frontend-shared';
+import { useStudentStore, useMembershipStore, useCatalogStore, GapDiagnosisChart, type TargetJob } from 'frontend-shared';
 
 // T056 Dashboard — 갭 진단 결과를 직무별로 표시. 활동/직무 미설정 시 온보딩으로 유도.
 // 004 US7/US8: 추천 채용 광고·제휴 배너(동의·플래그 기준, 미동의/off 시 자동 빈 목록).
@@ -9,6 +9,7 @@ import { useStudentStore, useMembershipStore, GapDiagnosisChart, type TargetJob 
 const router = useRouter();
 const student = useStudentStore();
 const market = useMembershipStore();
+const catalog = useCatalogStore();
 const triggering = ref(false);
 
 function openBanner(id: number, url: string): void {
@@ -19,6 +20,7 @@ function openBanner(id: number, url: string): void {
 const selectedJobId = ref<number | null>(null);
 
 onMounted(async () => {
+  void catalog.load();
   await Promise.all([student.fetchProfile(), student.fetchTargetJobs()]);
   if (student.targetJobs.length === 0) {
     await router.push('/onboarding');
@@ -75,7 +77,7 @@ async function rerunDiagnosis(): Promise<void> {
         type="button"
         @click="switchJob(job)"
       >
-        #{{ job.priority }} {{ job.industry_code }} / {{ job.job_role_code }}
+        #{{ job.priority }} {{ catalog.jobLabel(job.industry_code, job.job_role_code) }}
       </button>
     </div>
 
@@ -94,7 +96,7 @@ async function rerunDiagnosis(): Promise<void> {
       <ul class="promo-list">
         <li v-for="ad in market.recommendedAds" :key="ad.id" @click="market.trackBanner(ad.id, 'click')">
           <span class="title">{{ ad.title }}</span>
-          <span class="muted">{{ ad.industry_code }} / {{ ad.job_role_code }}</span>
+          <span class="muted">{{ catalog.jobLabel(ad.industry_code, ad.job_role_code) }}</span>
         </li>
       </ul>
     </div>

@@ -1,4 +1,5 @@
 export { useAuthStore, type Role, type SessionUser } from './auth.js';
+export { useCatalogStore } from './catalog.js';
 export {
   useStudentStore,
   type StudentProfile,
@@ -39,6 +40,7 @@ export {
   type DonateActivityInput,
   type UsageBucket,
   type UsageBreakdown,
+  type PartnerRow,
   type PaymentStatus,
   type CheckoutResult,
   type PaymentView,

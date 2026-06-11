@@ -43,50 +43,6 @@ async function performLogin(): Promise<void> {
   await router.push(target);
 }
 
-// 003 US6(T044): 네이버 로그인.
-//   • 실연동(VITE_NAVER_CLIENT_ID 설정): 네이버 인증 페이지로 리다이렉트(콜백이 code 회수).
-//   • dev(미설정): 합성 code 로 백엔드 dev 경로를 태워 생성/로그인 흐름을 시연.
-const naverClientId = (import.meta.env?.VITE_NAVER_CLIENT_ID as string | undefined) ?? '';
-
-async function loginNaver(): Promise<void> {
-  errorMsg.value = null;
-  if (naverClientId) {
-    const redirectUri = `${window.location.origin}/login`;
-    const state = Math.random().toString(36).slice(2);
-    window.location.assign(
-      `https://nid.naver.com/oauth2.0/authorize?response_type=code` +
-        `&client_id=${encodeURIComponent(naverClientId)}` +
-        `&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`,
-    );
-    return;
-  }
-  submitting.value = true;
-  try {
-    const { created } = await auth.loginWithNaver(`web-naver-dev-${Date.now()}`);
-    await router.push(created ? '/onboarding' : '/dashboard');
-  } catch {
-    errorMsg.value = '네이버 로그인에 실패했습니다';
-  } finally {
-    submitting.value = false;
-  }
-}
-
-// 실연동 콜백 처리: ?code= 가 있으면 즉시 소셜 로그인 교환.
-async function maybeHandleNaverCallback(): Promise<void> {
-  const code = route.query.code as string | undefined;
-  if (!code) return;
-  submitting.value = true;
-  try {
-    const { created } = await auth.loginWithNaver(code, (route.query.state as string) ?? '');
-    await router.push(created ? '/onboarding' : '/dashboard');
-  } catch {
-    errorMsg.value = '네이버 로그인에 실패했습니다';
-  } finally {
-    submitting.value = false;
-  }
-}
-void maybeHandleNaverCallback();
-
 async function onSubmit(): Promise<void> {
   errorMsg.value = null;
   submitting.value = true;
@@ -171,11 +127,6 @@ async function onSubmit(): Promise<void> {
         {{ submitting ? '처리 중…' : mode === 'login' ? '로그인' : '가입 후 로그인' }}
       </button>
     </form>
-
-    <div class="divider"><span>또는</span></div>
-    <button class="naver" type="button" :disabled="submitting" @click="loginNaver">
-      <strong>N</strong> 네이버로 계속하기
-    </button>
   </section>
 </template>
 
@@ -195,10 +146,4 @@ async function onSubmit(): Promise<void> {
 }
 .submit:disabled { background: #93c5fd; cursor: not-allowed; }
 .err { color: #b91c1c; font-size: 0.9rem; margin: 0.25rem 0; }
-.divider { display: flex; align-items: center; text-align: center; color: #9ca3af; font-size: 0.8rem; margin: 1rem 0; }
-.divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #e5e7eb; }
-.divider span { padding: 0 0.6rem; }
-.naver { width: 100%; padding: 0.65rem; background: #03c75a; color: #fff; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-.naver strong { background: #fff; color: #03c75a; border-radius: 3px; padding: 0 0.4rem; }
-.naver:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>

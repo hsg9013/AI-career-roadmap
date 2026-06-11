@@ -49,6 +49,26 @@ export async function listIndustries(): Promise<{ items: IndustryDto[] }> {
   return { items };
 }
 
+export interface JobRoleNameDto {
+  code: string;
+  industry_code: string;
+  name: string;
+}
+
+// 014: 전체 직무(코드→한글명) 1회 조회. 프론트 라벨 매핑용(대시보드/로드맵/미션이 코드 대신 한글 표시).
+export async function listAllJobRoles(): Promise<{ items: JobRoleNameDto[] }> {
+  const [rows] = await getPool().query(
+    `SELECT industry_code, code, name FROM job_roles WHERE is_active = TRUE
+     ORDER BY industry_code, sort_order, code`,
+  );
+  const items = (rows as Array<{ industry_code: string; code: string; name: string }>).map((r) => ({
+    code: r.code,
+    industry_code: r.industry_code,
+    name: r.name,
+  }));
+  return { items };
+}
+
 export async function listJobsByIndustry(industryCode: string): Promise<{ items: JobRoleDto[] }> {
   const pool = getPool();
   const [industry] = await pool.query(

@@ -3,6 +3,7 @@ import { validate } from '../../middlewares/requestValidator.js';
 import {
   listIndustriesHandler,
   listJobsHandler,
+  listAllJobsHandler,
   industryParamsSchema,
 } from './handlers.js';
 
@@ -11,6 +12,8 @@ import {
 const router: Router = Router();
 
 router.get('/industries', listIndustriesHandler);
+// 014: 전체 직무(코드→한글명) — :industryCode 보다 먼저 등록(경로 충돌 방지).
+router.get('/job-roles', listAllJobsHandler);
 router.get(
   '/industries/:industryCode/jobs',
   validate({ params: industryParamsSchema }),

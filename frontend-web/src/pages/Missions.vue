@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue';
-import { useMissionsStore, useAuthStore, getApi, type Mission } from 'frontend-shared';
+import { useMissionsStore, useAuthStore, useCatalogStore, getApi, type Mission } from 'frontend-shared';
 
 // US4 실무 미션 + AI 1차 피드백 페이지
 // 005 US4(H4): 멘토 계정은 배정된 제출물에 심층 코멘트를 작성한다.
 
 const store = useMissionsStore();
 const auth = useAuthStore();
+const catalog = useCatalogStore();
 const isMentor = computed(() => auth.user?.role === 'mentor');
 
 const busy = ref(false);
@@ -46,6 +47,7 @@ async function submitComment(submissionId: number): Promise<void> {
 }
 
 onMounted(() => {
+  void catalog.load();
   if (isMentor.value) void fetchAssignments();
   else void store.fetchAll();
 });
@@ -105,7 +107,7 @@ async function submit(): Promise<void> {
       <li v-for="m in store.missions" :key="m.id" class="mission">
         <div class="info">
           <strong>{{ m.title }}</strong>
-          <span v-if="m.job_role_code" class="role">{{ m.industry_code }}/{{ m.job_role_code }}</span>
+          <span v-if="m.job_role_code" class="role">{{ catalog.jobLabel(m.industry_code, m.job_role_code) }}</span>
           <p class="muted">{{ m.brief }}</p>
         </div>
         <button @click="open(m)">제출</button>

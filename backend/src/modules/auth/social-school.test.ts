@@ -5,11 +5,10 @@ import { createApp } from '../../app.js';
 import { getPool, closePool } from '../../db/pool.js';
 import { isAcKrEmail } from './schoolEmail.js';
 
-// 003 US6: 네이버 소셜 로그인(생성·연결) + 학교 이메일 검증(.ac.kr 게이트).
-// dev 무키 환경: 네이버는 code 결정적 합성 프로필, 메일은 콘솔. verify 는 devToken 노출.
+// 003 US6: 학교 이메일 검증(.ac.kr 게이트). 메일은 dev 콘솔, verify 는 devToken 노출.
+// (네이버 소셜 로그인은 기획 방향에 따라 제거됨)
 
 const RUN = Date.now();
-const NAVER_CODE = `naver-code-${RUN}`;
 const EXISTING_EMAIL = `vitest-us6-${RUN}@uni.ac.kr`;
 const PASSWORD = 'vitest-strong-us6';
 
@@ -21,8 +20,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // 소셜 신규 생성 계정(naver-dev-*@naver-dev.local) 포함 정리.
-  await getPool().query("DELETE FROM users WHERE email LIKE 'naver-dev-%@naver-dev.local'");
   for (const e of createdEmails) await getPool().query('DELETE FROM users WHERE email = ?', [e]);
   await closePool();
 });
@@ -33,21 +30,6 @@ describe('isAcKrEmail', () => {
     expect(isAcKrEmail('a@dept.korea.ac.kr')).toBe(true);
     expect(isAcKrEmail('a@gmail.com')).toBe(false);
     expect(isAcKrEmail('a@ac.kr.evil.com')).toBe(false);
-  });
-});
-
-describe('POST /v1/auth/social/naver', () => {
-  it('신규 코드 → 계정 생성(201) + 토큰 발급', async () => {
-    const res = await request(app).post('/v1/auth/social/naver').send({ code: NAVER_CODE }).expect(201);
-    expect(res.body.created).toBe(true);
-    expect(res.body.access_token).toBeTruthy();
-    expect(res.body.role).toBe('student');
-  });
-
-  it('동일 코드 재로그인 → 기존 계정 연결(200, created=false)', async () => {
-    const res = await request(app).post('/v1/auth/social/naver').send({ code: NAVER_CODE }).expect(200);
-    expect(res.body.created).toBe(false);
-    expect(res.body.access_token).toBeTruthy();
   });
 });
 

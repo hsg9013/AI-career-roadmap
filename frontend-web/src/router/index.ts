@@ -79,7 +79,8 @@ const routes: RouteRecordRaw[] = [
     path: '/donate',
     name: 'donate',
     component: () => import('../pages/AlumniDonate.vue'),
-    meta: { requiresAuth: true },
+    // 11번: 합격 경험 공유(합격 경로 기부)는 멘토(현직자) 전용.
+    meta: { requiresAuth: true, roles: ['mentor'] },
   },
   {
     path: '/university',

@@ -97,16 +97,6 @@ export const useAuthStore = defineStore('auth', () => {
     clearSession();
   }
 
-  // 003 US6(T042): 네이버 소셜 로그인 — code 로 세션 발급. created 면 신규 가입.
-  async function loginWithNaver(code: string, state = ''): Promise<{ role: Role; created: boolean }> {
-    const { data } = await getApi().post<{ access_token: string; role: Role; created: boolean }>(
-      '/auth/social/naver',
-      { code, state },
-    );
-    setSession(data.access_token, { id: 0, email: '', role: data.role, scopes: [] });
-    return { role: data.role, created: data.created };
-  }
-
   // 003 US6(T043): 학교 이메일 검증 요청/확인/상태.
   async function requestSchoolEmail(email: string): Promise<{ status: string; devToken?: string }> {
     const { data } = await getApi().post<{ status: string; devToken?: string }>(
@@ -130,6 +120,6 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     accessToken, user, isAuthenticated, hasScope, setSession, clearSession,
     restoreSession, refreshAccessToken, logout,
-    loginWithNaver, requestSchoolEmail, confirmSchoolEmail, schoolEmailStatus,
+    requestSchoolEmail, confirmSchoolEmail, schoolEmailStatus,
   };
 });

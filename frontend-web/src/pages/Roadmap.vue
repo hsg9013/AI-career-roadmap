@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { onMounted, computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useStudentStore, useRoadmapStore, type TargetJob, type RoadmapItem } from 'frontend-shared';
+import { useStudentStore, useRoadmapStore, useCatalogStore, type TargetJob, type RoadmapItem } from 'frontend-shared';
 
-// US2 로드맵 페이지 — 선배 경로 기반 합격 로드맵을 시기별로 표시, 추천 거부 지원.
+// US2 로드맵 페이지 — 합격자 경로 기반 합격 로드맵을 시기별로 표시, 추천 거부 지원.
 
 const router = useRouter();
 const student = useStudentStore();
 const roadmap = useRoadmapStore();
+const catalog = useCatalogStore();
 
 const selectedJobId = ref<number | null>(null);
 const busy = ref(false);
 
 onMounted(async () => {
+  void catalog.load();
   await student.fetchTargetJobs();
   if (student.targetJobs.length === 0) {
     await router.push('/onboarding');
@@ -67,7 +69,7 @@ async function reject(item: RoadmapItem): Promise<void> {
     <header class="head">
       <div>
         <h2>합격 로드맵</h2>
-        <p class="muted">취업에 성공한 선배들의 (익명화된) 경로를 분석해 시기별 준비 과제를 제안합니다.</p>
+        <p class="muted">취업에 성공한 합격자들의 (익명화된) 경로를 분석해 시기별 준비 과제를 제안합니다.</p>
       </div>
       <button class="primary" :disabled="busy || selectedJobId === null" @click="generate">
         {{ busy ? '생성 중…' : '로드맵 생성/갱신' }}
@@ -81,7 +83,7 @@ async function reject(item: RoadmapItem): Promise<void> {
         :class="{ active: job.id === selectedJobId }"
         @click="switchJob(job)"
       >
-        {{ job.industry_code }}/{{ job.job_role_code }}
+        {{ catalog.jobLabel(job.industry_code, job.job_role_code) }}
       </button>
     </nav>
 
@@ -103,8 +105,8 @@ async function reject(item: RoadmapItem): Promise<void> {
         <p class="weight muted">ℹ {{ current.rationale.weight_note }}</p>
       </div>
       <p class="meta muted">
-        근거: {{ current.source === 'cohort' ? '선배 코호트' : '직무 요구역량 기반' }}
-        · 선배 표본 {{ current.cohort_size }}명
+        근거: {{ current.source === 'cohort' ? '합격자 코호트' : '직무 요구역량 기반' }}
+        · 합격자 표본 {{ current.cohort_size }}명
         <span v-if="current.cohort_key"> · {{ current.cohort_key }}</span>
       </p>
 

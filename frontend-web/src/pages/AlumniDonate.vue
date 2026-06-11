@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { useAlumniStore, type DonateActivityInput } from 'frontend-shared';
 
-// US9 선배 합격 경로 기부 — 익명화 저장 후 보상. 누구나(졸업 선배) 가능.
+// US9 합격 경로 공유 — 익명화 저장 후 보상. 멘토(현직자) 전용.
 
 const store = useAlumniStore();
 const form = ref({ industry_code: 'IT', job_role_code: 'backend', major_field: 'engineering', grade_band: 'y4plus', success_year: 2025 });
@@ -25,7 +25,7 @@ async function submit(): Promise<void> {
 <template>
   <section class="donate">
     <header><h2>합격 경험 공유</h2>
-      <p class="muted">개인 식별 정보 없이 익명화되어 후배 추천에 활용됩니다. 공유 시 보상(배지)이 지급됩니다.</p>
+      <p class="muted">개인 식별 정보 없이 익명화되어 취준생 추천에 활용됩니다. 공유 1건당 '합격 경험 공유 배지'와 정산 적립(₩10,000)이 지급됩니다.</p>
     </header>
 
     <div class="row">
@@ -48,7 +48,7 @@ async function submit(): Promise<void> {
       <button :disabled="store.loading" @click="submit">{{ store.loading ? '제출 중…' : '공유하기' }}</button>
     </div>
     <p v-if="store.lastError" class="error">{{ store.lastError }}</p>
-    <p v-if="result" class="ok">공유 완료 · 익명화 저장됨 · 보상: {{ result.reward_type }}</p>
+    <p v-if="result" class="ok">공유 완료 · 익명화 저장됨 · 보상: 합격 경험 공유 배지 + 정산 ₩10,000 적립</p>
   </section>
 </template>
 

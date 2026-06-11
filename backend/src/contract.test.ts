@@ -41,7 +41,6 @@ const ROUTES: ContractRoute[] = [
   { method: 'get', path: '/v1/notifications/settings' },
   { method: 'put', path: '/v1/notifications/settings' },
   { method: 'post', path: '/v1/notifications/devices' },
-  { method: 'post', path: '/v1/auth/social/naver', public: true },
   { method: 'post', path: '/v1/auth/school-email/verify' },
   { method: 'get', path: '/v1/auth/school-email/status' },
   { method: 'post', path: '/v1/auth/school-email/confirm', public: true },
