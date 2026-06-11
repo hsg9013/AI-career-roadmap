@@ -5,24 +5,25 @@ import { ref } from 'vue';
 //   - 인재 열람권 구독 상품(베이직/프로) + 매칭 성사 수수료 안내 + 결제 관리.
 //   - 표현/안내 중심(요금제 카드). 실제 구독·결제 연동은 운영 계약 시 활성화.
 
+// 기업 SaaS = 무료 + 멤버십(유료) 2단계.
 const PLANS = [
   {
-    code: 'basic', name: '베이직', price: '₩90,000 / 월', highlight: false,
-    features: ['월 인재 열람 50건', '산업·직무 검색', '기본 매칭 리포트', '담당자 1석'],
+    code: 'free', name: '무료', price: '₩0', highlight: false,
+    features: ['월 인재 열람 5건', '산업·직무 기본 검색', '기본 매칭 리포트', '담당자 1석'],
   },
   {
-    code: 'pro', name: '프로', price: '₩290,000 / 월', highlight: true,
-    features: ['월 인재 열람 무제한', '심층 매칭 분석 리포트', '관심 인재 저장·알림', '담당자 5석', '우선 지원'],
+    code: 'membership', name: '멤버십', price: '₩300,000 / 월', highlight: true,
+    features: ['월 인재 열람 무제한', '심층 매칭 분석 리포트', '관심 인재 저장·알림', '담당자 5석', '연 결제 시 2개월 할인(₩3,000,000/년)', '우선 지원'],
   },
 ];
-const current = ref('basic'); // 데모: 현재 구독 플랜
+const current = ref('free'); // 데모: 현재 이용 플랜(기본 무료)
 </script>
 
 <template>
   <section class="cplan">
     <header>
       <h2>기업 플랜 서비스</h2>
-      <p class="muted">인재 열람권 구독과 채용 성사 수수료로 구성된 기업 전용 요금제입니다.</p>
+      <p class="muted">무료 플랜과 멤버십 구독, 채용 성사 수수료로 구성된 기업 전용 요금제입니다.</p>
     </header>
 
     <div class="plans">
@@ -53,10 +54,11 @@ const current = ref('basic'); // 데모: 현재 구독 플랜
 
     <div class="billing">
       <h4>결제 관리</h4>
-      <ul class="bill-list">
-        <li><span>구독 — 베이직 (월)</span><span class="muted">다음 결제일 매월 1일</span></li>
+      <ul v-if="current === 'membership'" class="bill-list">
+        <li><span>구독 — 멤버십 (월)</span><span class="muted">₩300,000 · 다음 결제일 매월 1일</span></li>
         <li><span>등록 결제수단</span><span class="muted">법인카드 ****-1234</span></li>
       </ul>
+      <p v-else class="muted">현재 <b>무료 플랜</b> 이용 중 — 구독 결제가 없습니다. 멤버십 전환 시 월 ₩300,000이 청구됩니다.</p>
       <p class="muted small">결제수단 변경·세금계산서 발행은 운영팀(파트너 지원)으로 문의하세요.</p>
     </div>
   </section>

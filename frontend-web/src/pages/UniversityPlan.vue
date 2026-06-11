@@ -31,7 +31,7 @@ const renewDate = '2027-03-01'; // 데모: 연간 구독 갱신일
         <p class="muted">학내 취업률 통계·개인 단위 현황·인재 추천 연동을 포함한 기관 통합 라이선스.</p>
       </div>
       <div class="fee">
-        <b>₩12,000,000</b><span class="muted"> / 연</span>
+        <b>₩6,600,000</b><span class="muted"> / 연 (VAT 별도)</span>
       </div>
     </div>
 
@@ -64,8 +64,8 @@ const renewDate = '2027-03-01'; // 데모: 연간 구독 갱신일
     <table class="btbl">
       <thead><tr><th>청구월</th><th>항목</th><th>금액</th><th>상태</th></tr></thead>
       <tbody>
-        <tr><td>2026-03</td><td>캠퍼스 엔터프라이즈(연간)</td><td>₩12,000,000</td><td><span class="st paid">결제 완료</span></td></tr>
-        <tr><td>2025-03</td><td>캠퍼스 엔터프라이즈(연간)</td><td>₩12,000,000</td><td><span class="st paid">결제 완료</span></td></tr>
+        <tr><td>2026-03</td><td>캠퍼스 엔터프라이즈(연간, 500석)</td><td>₩6,600,000</td><td><span class="st paid">결제 완료</span></td></tr>
+        <tr><td>2025-03</td><td>캠퍼스 엔터프라이즈(연간, 500석)</td><td>₩6,600,000</td><td><span class="st paid">결제 완료</span></td></tr>
       </tbody>
     </table>
     <p class="muted small">세금계산서·계약 변경은 운영팀(기관 파트너 지원)으로 문의하세요.</p>
