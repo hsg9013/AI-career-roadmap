@@ -91,6 +91,25 @@ async function rerunDiagnosis(): Promise<void> {
 
     <p v-if="student.lastError" class="err">{{ student.lastError }}</p>
 
+    <!-- 005 고도화: 학생 메인 커리어 도구 바로가기 -->
+    <div class="tools">
+      <router-link to="/roadmap" class="tool">
+        <span class="t-ico">🧭</span>
+        <span class="t-tit">AI 커리어 로드맵</span>
+        <span class="t-desc">합격자 경로 기반 시기별 준비 과제</span>
+      </router-link>
+      <router-link to="/activities" class="tool">
+        <span class="t-ico">📈</span>
+        <span class="t-tit">진척도 체크</span>
+        <span class="t-desc">활동·스펙 입력으로 역량 점수 갱신</span>
+      </router-link>
+      <router-link to="/documents" class="tool">
+        <span class="t-ico">🗂️</span>
+        <span class="t-tit">디지털 포트폴리오 빌더</span>
+        <span class="t-desc">이력서·자기소개서·포트폴리오 자동 생성</span>
+      </router-link>
+    </div>
+
     <div v-if="market.recommendedAds.length" class="promo">
       <h3>추천 채용·인턴십 <span class="ad-tag">광고</span></h3>
       <ul class="promo-list">
@@ -138,6 +157,13 @@ async function rerunDiagnosis(): Promise<void> {
 .rerun:disabled { opacity: 0.6; cursor: not-allowed; }
 .footer { margin-top: 2rem; font-size: 0.9rem; text-align: center; }
 .err { color: #b91c1c; margin-top: 1rem; }
+.tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; margin-top: 1.25rem; }
+.tool { display: flex; flex-direction: column; gap: 0.2rem; text-decoration: none; border: 1px solid #e5e7eb; border-radius: 12px; padding: 0.9rem 1rem; background: #fff; transition: border-color 0.15s, box-shadow 0.15s; }
+.tool:hover { border-color: #2563eb; box-shadow: 0 2px 8px rgba(37,99,235,0.08); }
+.t-ico { font-size: 1.4rem; }
+.t-tit { font-weight: 600; color: #111827; }
+.t-desc { font-size: 0.8rem; color: #6b7280; }
+@media (max-width: 720px) { .tools { grid-template-columns: 1fr; } }
 .promo { margin-top: 1.5rem; border: 1px solid #e5e7eb; border-radius: 10px; padding: 0.9rem 1.1rem; }
 .promo h3 { margin: 0 0 0.5rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
 .ad-tag { font-size: 0.68rem; font-weight: 700; color: #6b7280; background: #f3f4f6; border-radius: 999px; padding: 0.1rem 0.45rem; }

@@ -13,20 +13,34 @@ async function onLogout(): Promise<void> {
 
 // 005 US3(H3): 역할별 네비게이션 메뉴 — 권한에 맞는 서비스만 노출(권한 종속 UI).
 // 권한 밖 경로는 라우터 가드(useAuthGuard)가 /forbidden 으로 차단한다.
+// 005 고도화: 역할별 메뉴 + 역할별 '멤버십/SaaS 구독' 메뉴 분기.
 const links = computed(() => {
   const role = auth.user?.role;
   if (role === 'admin') return [{ to: '/admin', label: '관리자 대시보드' }];
-  if (role === 'university') return [{ to: '/university', label: '대학 대시보드' }];
-  if (role === 'enterprise') return [{ to: '/company', label: '인재 검색' }];
+  if (role === 'university') {
+    // 대학(B2G/B2B): 통계 대시보드 + 기관 라이선스 플랜 관리
+    return [
+      { to: '/university', label: '대학 대시보드' },
+      { to: '/university-plan', label: '대학 기관 플랜 관리' },
+    ];
+  }
+  if (role === 'enterprise') {
+    // 기업(B2B): 인재 검색 + 기업 플랜 서비스
+    return [
+      { to: '/company', label: '인재 검색' },
+      { to: '/company-plan', label: '기업 플랜 서비스' },
+    ];
+  }
   if (role === 'mentor') {
-    // 현직자(멘토): 미션 출제·심층 코멘트 + 합격 경험 공유 + 알림
+    // 현직자(멘토): 검수·미션·합격경험공유 + 정산/활동 등급
     return [
       { to: '/missions', label: '미션' },
       { to: '/donate', label: '합격 경험 공유' },
       { to: '/notifications', label: '알림' },
+      { to: '/mentor-earnings', label: '정산 및 활동 등급' },
     ];
   }
-  // student (기본)
+  // student (기본): 커리어 도구 + 내 이용권/멤버십
   return [
     { to: '/dashboard', label: '대시보드' },
     { to: '/activities', label: '활동·스펙' },
@@ -34,7 +48,7 @@ const links = computed(() => {
     { to: '/documents', label: '문서' },
     { to: '/missions', label: '미션' },
     { to: '/notifications', label: '알림' },
-    { to: '/membership', label: '멤버십' },
+    { to: '/membership', label: '내 이용권/멤버십' },
   ];
 });
 </script>

@@ -42,7 +42,15 @@ async function performLogin(): Promise<void> {
     role: data.role,
     scopes: [],
   });
-  const target = (route.query.redirect as string | undefined) ?? '/dashboard';
+  // 005 고도화: 로그인 후 역할별 전용 메인으로 분기(완전 독점 진입).
+  const ROLE_HOME: Record<string, string> = {
+    student: '/dashboard',
+    mentor: '/missions',
+    enterprise: '/company',
+    university: '/university',
+    admin: '/admin',
+  };
+  const target = (route.query.redirect as string | undefined) ?? ROLE_HOME[data.role] ?? '/dashboard';
   await router.push(target);
 }
 

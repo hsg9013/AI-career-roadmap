@@ -14,10 +14,16 @@ export const requireAuthGuard: NavigationGuard = (to) => {
   if (required && !required.every((s) => auth.hasScope(s))) {
     return { name: 'forbidden' };
   }
-  // 특정 역할 전용(meta.roles) — 예: 합격 경험 공유는 멘토(현직자)만.
+  // 005 고도화: 역할 전용 라우트(meta.roles) — 권한 밖이면 자기 역할 홈으로 분기(완전 독점).
   const roles = to.meta?.roles as string[] | undefined;
   if (roles && roles.length > 0 && !(auth.user && roles.includes(auth.user.role))) {
-    return { name: 'forbidden' };
+    const ROLE_HOME: Record<string, string> = {
+      student: '/dashboard', mentor: '/missions', enterprise: '/company',
+      university: '/university', admin: '/admin',
+    };
+    const home = auth.user ? ROLE_HOME[auth.user.role] : undefined;
+    // 자기 홈 자체가 막히는 경우(이상 상태)만 forbidden — 그 외엔 홈으로 리다이렉트(루프 방지).
+    return home && to.path !== home ? home : { name: 'forbidden' };
   }
   return true;
 };
