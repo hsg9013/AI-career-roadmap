@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, unlinkSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,14 +21,24 @@ const OAUTH_BETA = 'oauth-2025-04-20';
 //   플래그 파일이 존재하고 LLM_API_KEY 가 비어 있으면, 로컬 구독 OAuth 토큰
 //   (~/.claude/.credentials.json)을 매 호출 재독취해 임시 실연동한다(파일/.env 저장 안 함).
 //   플래그 파일이 없으면(기본) 완전 OFF — 규칙 기반 폴백으로 동작한다.
+//   안전장치: 플래그 생성 후 DEMO_TTL_MS(기본 2시간)가 지나면 자동 만료(끄는 걸 잊어도 OK).
 //   토글: pnpm demo:on / pnpm demo:off (또는 플래그 파일 생성/삭제).
 const DEMO_FLAG_PATH =
   env.DEMO_AI_FLAG_FILE ||
   join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '.run', 'demo-ai.on');
+const DEMO_TTL_MS = env.DEMO_AI_TTL_MS > 0 ? env.DEMO_AI_TTL_MS : 2 * 60 * 60 * 1000; // 기본 2시간
 
 function demoActive(): boolean {
   try {
-    return existsSync(DEMO_FLAG_PATH);
+    if (!existsSync(DEMO_FLAG_PATH)) return false;
+    // 플래그 생성(=마지막 켜기) 후 TTL 초과 시 자동 만료 — 플래그 파일을 정리하고 OFF 처리.
+    const ageMs = Date.now() - statSync(DEMO_FLAG_PATH).mtimeMs;
+    if (ageMs > DEMO_TTL_MS) {
+      try { unlinkSync(DEMO_FLAG_PATH); } catch { /* 자동 청소 실패 무시 */ }
+      logger.info({ ageMs }, '[ai] demo flag expired (auto-off)');
+      return false;
+    }
+    return true;
   } catch {
     return false;
   }

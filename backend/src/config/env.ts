@@ -41,6 +41,8 @@ const EnvSchema = z.object({
   LLM_MODEL: z.string().default('claude-haiku-4-5'),
   // 발표용 AI 데모 토글 플래그 파일 경로(미설정 시 <repo>/.run/demo-ai.on). 파일 존재 시 ON.
   DEMO_AI_FLAG_FILE: z.string().optional().default(''),
+  // 데모 자동 만료(ms). 0 = 기본 2시간. 플래그 생성 후 경과 시 자동 OFF.
+  DEMO_AI_TTL_MS: z.coerce.number().int().nonnegative().default(0),
   // 003(US1): 실연동 가드 — 호출당 타임아웃(ms)·응답 토큰 상한. 초과·실패 시 규칙 기반 폴백.
   LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
   LLM_MAX_TOKENS: z.coerce.number().int().positive().default(1024),
