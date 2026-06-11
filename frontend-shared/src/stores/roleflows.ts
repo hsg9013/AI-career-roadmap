@@ -152,11 +152,20 @@ export const usePaymentsStore = defineStore('payments', () => {
   const payouts = ref<unknown[]>([]);
   const loading = ref(false);
   const lastError = ref<string | null>(null);
-  async function checkout(amount: number, plan = 'standard'): Promise<CheckoutResult> {
+  async function checkout(
+    amount: number,
+    plan = 'standard',
+    forceResult?: 'success' | 'fail',
+  ): Promise<CheckoutResult> {
     loading.value = true;
     lastError.value = null;
     try {
-      const { data } = await getApi().post<CheckoutResult>('/payments/checkout', { kind: 'membership', amount, plan });
+      const { data } = await getApi().post<CheckoutResult>('/payments/checkout', {
+        kind: 'membership',
+        amount,
+        plan,
+        ...(forceResult ? { force_result: forceResult } : {}),
+      });
       result.value = data;
       // 실연동(pending+redirect)일 때 결제창으로 이동.
       if (data.status === 'pending' && data.redirect_url && typeof window !== 'undefined') {

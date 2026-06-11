@@ -9,7 +9,8 @@
     "gen:base": "openapi-typescript ../../specs/001-ai-career-roadmap/contracts/openapi.yaml -o ./src/openapi.d.ts",
     "gen:003": "openapi-typescript ../../specs/003-intent-specify/contracts/openapi.yaml -o ./src/openapi-003.d.ts",
     "gen:004": "openapi-typescript ../../specs/004-intent-specify/contracts/openapi.yaml -o ./src/openapi-004.d.ts",
-    "gen": "pnpm gen:base && pnpm gen:003 && pnpm gen:004",
+    "gen:005": "openapi-typescript ../../specs/005-intent-specify/contracts/openapi.yaml -o ./src/openapi-005.d.ts",
+    "gen": "pnpm gen:base && pnpm gen:003 && pnpm gen:004 && pnpm gen:005",
     "build": "tsc -p tsconfig.json"
   },
   "devDependencies": {

@@ -14,7 +14,7 @@ import activitiesRouter from './modules/activities/router.js';
 import gapDiagnosisRouter from './modules/gap-diagnosis/router.js';
 import roadmapRouter from './modules/roadmap/router.js';
 import documentsRouter from './modules/documents/router.js';
-import { missionsRouter, submissionsRouter } from './modules/missions/router.js';
+import { missionsRouter, submissionsRouter, mentorRouter } from './modules/missions/router.js';
 import notificationsRouter from './modules/notifications/router.js';
 import universityRouter from './modules/university/router.js';
 import { companiesRouter, matchConsentRouter } from './modules/companies/router.js';
@@ -109,6 +109,7 @@ export function createApp(): Express {
   v1.use('/documents', documentsRouter);
   v1.use('/missions', missionsRouter);
   v1.use('/submissions', submissionsRouter);
+  v1.use('/mentor', mentorRouter);
   v1.use('/notifications', notificationsRouter);
   v1.use('/university', universityRouter);
   v1.use('/companies', companiesRouter);

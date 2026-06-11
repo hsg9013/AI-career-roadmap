@@ -16,6 +16,8 @@
     "pinia": "^2.2.0",
     "axios": "^1.7.0",
     "@vueuse/core": "^11.0.0",
+    "jspdf": "^2.5.2",
+    "docx": "^9.0.0",
     "frontend-shared": "workspace:*",
     "@ai-career/shared-types": "workspace:*"
   },

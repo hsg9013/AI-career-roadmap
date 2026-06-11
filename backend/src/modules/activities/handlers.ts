@@ -41,7 +41,12 @@ export async function listHandler(
   }
 }
 
-export const activityInputSchema = z.object({
+// 005 US5(H5): 기간 검증 — 종료일이 있으면 시작일보다 빠를 수 없다(진행 중이면 null).
+const endNotBeforeStart = (v: { started_at?: string; ended_at?: string | null }): boolean =>
+  !v.ended_at || !v.started_at || v.ended_at >= v.started_at;
+const periodMsg = { message: '종료일은 시작일보다 빠를 수 없습니다.', path: ['ended_at'] };
+
+const activityBaseSchema = z.object({
   category: z.enum(ACTIVITY_CATEGORIES),
   title: z.string().min(1).max(200),
   description: z.string().nullable().optional(),
@@ -51,9 +56,12 @@ export const activityInputSchema = z.object({
   manual_tags: z.array(z.string().min(1).max(80)).max(20).optional(),
 });
 
-export const activityPatchSchema = activityInputSchema
+export const activityInputSchema = activityBaseSchema.refine(endNotBeforeStart, periodMsg);
+
+export const activityPatchSchema = activityBaseSchema
   .partial()
-  .refine((v) => Object.keys(v).length > 0, { message: 'No fields to update' });
+  .refine((v) => Object.keys(v).length > 0, { message: 'No fields to update' })
+  .refine(endNotBeforeStart, periodMsg);
 
 export const idParamSchema = z.object({
   id: z.coerce.number().int().positive(),

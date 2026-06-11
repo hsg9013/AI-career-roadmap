@@ -7,9 +7,12 @@
 export * as Api from './openapi.js';
 export * as Api003 from './openapi-003.js';
 export * as Api004 from './openapi-004.js';
+export * as Api005 from './openapi-005.js';
 
 // 델타 응답 스키마 단축 별칭(프런트·백엔드 공용).
 import type { components as Components003 } from './openapi-003.js';
 export type Schemas003 = Components003['schemas'];
 import type { components as Components004 } from './openapi-004.js';
 export type Schemas004 = Components004['schemas'];
+import type { components as Components005 } from './openapi-005.js';
+export type Schemas005 = Components005['schemas'];

@@ -57,6 +57,14 @@ const EnvSchema = z.object({
     .default('false')
     .transform((v) => v === 'true' || v === '1'),
 
+  // 005(US6): 결제 Sandbox/가상 시나리오 토글 — 데모 기본 on. off('false'/'0')면 결제 비활성.
+  // 실거래가 아님(테스트모드/가상). 'false'/'0' 일 때만 off.
+  PAYMENT_SANDBOX_ENABLED: z
+    .string()
+    .optional()
+    .default('true')
+    .transform((v) => !(v === 'false' || v === '0')),
+
   PORTONE_IMP_KEY: z.string().optional().default(''),
   PORTONE_IMP_SECRET: z.string().optional().default(''),
   PORTONE_PAYOUTS_API_KEY: z.string().optional().default(''),

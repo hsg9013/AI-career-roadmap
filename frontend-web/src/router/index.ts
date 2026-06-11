@@ -6,6 +6,8 @@ import { requireAuthGuard } from 'frontend-shared';
 const routes: RouteRecordRaw[] = [
   { path: '/', name: 'home', component: () => import('../pages/Home.vue') },
   { path: '/login', name: 'login', component: () => import('../pages/Login.vue') },
+  // 005 US3(H3): 파트너 자체 회원가입 — 무인증 공개.
+  { path: '/partner-signup', name: 'partner-signup', component: () => import('../pages/PartnerSignup.vue') },
   { path: '/forbidden', name: 'forbidden', component: () => import('../pages/Forbidden.vue') },
   {
     path: '/school-email',

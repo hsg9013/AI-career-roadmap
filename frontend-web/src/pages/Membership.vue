@@ -29,8 +29,8 @@ const STATUS_LABEL: Record<string, string> = {
   refunded: '환불됨',
 };
 
-async function pay(): Promise<void> {
-  await store.checkout(amount.value, 'standard').catch(() => undefined);
+async function pay(forceResult?: 'success' | 'fail'): Promise<void> {
+  await store.checkout(amount.value, 'standard', forceResult).catch(() => undefined);
 }
 
 // 웹훅 확정(실연동) 후 상태를 다시 불러온다.
@@ -54,10 +54,17 @@ async function refresh(): Promise<void> {
       </div>
     </div>
 
+    <!-- 005 US6(H6): 결제는 테스트모드(Sandbox)/가상 시나리오 — 실제 거래가 아님을 명시. -->
+    <p class="sandbox-note">🧪 테스트 모드 — 실제 거래가 아닙니다. (결제 성공/실패·등급 변경 시연용)</p>
+
     <div class="plan">
       <h3>스탠다드</h3>
       <p class="price">₩<input v-model.number="amount" type="number" /> / 월</p>
-      <button :disabled="store.loading" @click="pay">{{ store.loading ? '결제 중…' : '결제하기' }}</button>
+      <div class="pay-actions">
+        <button :disabled="store.loading" @click="pay()">{{ store.loading ? '결제 중…' : '결제하기 (테스트)' }}</button>
+        <button class="ghost" :disabled="store.loading" @click="pay('success')">가상 성공</button>
+        <button class="ghost danger" :disabled="store.loading" @click="pay('fail')">가상 실패</button>
+      </div>
     </div>
 
     <p v-if="store.lastError" class="error">{{ store.lastError }}</p>
@@ -98,9 +105,13 @@ async function refresh(): Promise<void> {
 .muted { color: #6b7280; font-size: 0.9rem; }
 .error { color: #b91c1c; }
 .ok { color: #166534; margin: 0.3rem 0; }
+.sandbox-note { margin: 1rem 0 0; padding: 0.5rem 0.8rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; color: #92400e; font-size: 0.85rem; }
 .plan { border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.2rem; margin-top: 1rem; }
 .price input { width: 90px; border: 1px solid #d1d5db; border-radius: 6px; padding: 0.2rem; }
 .plan button { background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 0.6rem 1.2rem; cursor: pointer; margin-top: 0.5rem; }
+.pay-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.pay-actions .ghost { background: #fff; color: #2563eb; border: 1px solid #2563eb; }
+.pay-actions .ghost.danger { color: #b91c1c; border-color: #b91c1c; }
 .receipt { margin-top: 1.2rem; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem 1.2rem; }
 .receipt.paid { border-color: #bbf7d0; background: #f0fdf4; }
 .receipt.refunded, .receipt.canceled { border-color: #fecaca; background: #fef2f2; }

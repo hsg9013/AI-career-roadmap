@@ -1,16 +1,54 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useMissionsStore, type Mission } from 'frontend-shared';
+import { onMounted, ref, computed } from 'vue';
+import { useMissionsStore, useAuthStore, getApi, type Mission } from 'frontend-shared';
 
 // US4 실무 미션 + AI 1차 피드백 페이지
+// 005 US4(H4): 멘토 계정은 배정된 제출물에 심층 코멘트를 작성한다.
 
 const store = useMissionsStore();
+const auth = useAuthStore();
+const isMentor = computed(() => auth.user?.role === 'mentor');
+
 const busy = ref(false);
 const openId = ref<number | null>(null);
 const content = ref('');
 const aiFeedback = ref<string | null>(null);
 
-onMounted(() => store.fetchAll());
+// 멘토 전용 상태
+interface Assignment {
+  submission_id: number;
+  content: string | null;
+  mission_title: string;
+  deadline: string;
+}
+const assignments = ref<Assignment[]>([]);
+const commentFor = ref<number | null>(null);
+const comment = ref('');
+const mentorMsg = ref('');
+
+async function fetchAssignments(): Promise<void> {
+  const { data } = await getApi().get<Assignment[]>('/mentor/submissions');
+  assignments.value = data;
+}
+
+async function submitComment(submissionId: number): Promise<void> {
+  if (comment.value.trim().length === 0) return;
+  busy.value = true;
+  try {
+    await getApi().post(`/mentor/submissions/${submissionId}/feedback`, { content: comment.value });
+    mentorMsg.value = '심층 코멘트가 학생에게 전달되었습니다.';
+    comment.value = '';
+    commentFor.value = null;
+    await fetchAssignments();
+  } finally {
+    busy.value = false;
+  }
+}
+
+onMounted(() => {
+  if (isMentor.value) void fetchAssignments();
+  else void store.fetchAll();
+});
 
 function open(m: Mission): void {
   openId.value = m.id;
@@ -32,6 +70,33 @@ async function submit(): Promise<void> {
 
 <template>
   <section class="missions">
+    <!-- 005 US4(H4): 멘토 뷰 — 배정된 제출물에 심층 코멘트 작성 -->
+    <template v-if="isMentor">
+      <header><h2>현직자 검수</h2>
+        <p class="muted">배정된 학생 제출물에 심층 코멘트를 작성하면 AI 1차 피드백과 결합되어 학생에게 전달됩니다.</p>
+      </header>
+      <p v-if="mentorMsg" class="feedback">{{ mentorMsg }}</p>
+      <ul class="list">
+        <li v-for="a in assignments" :key="a.submission_id" class="mission">
+          <div class="info">
+            <strong>{{ a.mission_title }}</strong>
+            <span class="role">마감 {{ a.deadline?.slice(0, 10) }}</span>
+            <p class="muted">{{ a.content || '(제출 내용 없음)' }}</p>
+            <div v-if="commentFor === a.submission_id" class="composer">
+              <textarea v-model="comment" rows="4" placeholder="심층 코멘트를 작성하세요"></textarea>
+              <button :disabled="busy || comment.trim().length === 0" @click="submitComment(a.submission_id)">
+                {{ busy ? '전달 중…' : '코멘트 전달' }}
+              </button>
+            </div>
+          </div>
+          <button v-if="commentFor !== a.submission_id" @click="commentFor = a.submission_id">코멘트</button>
+        </li>
+        <li v-if="!assignments.length" class="muted">배정된 검수 대기 제출물이 없습니다.</li>
+      </ul>
+    </template>
+
+    <!-- 학생 뷰 -->
+    <template v-else>
     <header><h2>실무 미션</h2>
       <p class="muted">미션을 제출하면 AI 1차 피드백이 즉시 제공되고, 현직자 코멘트가 5영업일 내 결합됩니다.</p>
     </header>
@@ -55,6 +120,7 @@ async function submit(): Promise<void> {
       </button>
       <p v-if="aiFeedback" class="feedback">{{ aiFeedback }}</p>
     </div>
+    </template>
   </section>
 </template>
 

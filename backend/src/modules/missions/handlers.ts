@@ -1,6 +1,12 @@
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { listMissions, submitMission, getSubmissionFeedback } from '../../services/missions.js';
+import {
+  listMissions,
+  submitMission,
+  getSubmissionFeedback,
+  addMentorFeedback,
+  listMentorAssignments,
+} from '../../services/missions.js';
 import { HttpError } from '../../middlewares/errorHandler.js';
 
 // T038: 미션 핸들러 (US4)
@@ -16,6 +22,10 @@ export const submitBodySchema = z.object({
   storage_key: z.string().max(300).optional(),
 });
 export const feedbackParamsSchema = z.object({ submissionId: z.coerce.number().int().positive() });
+
+// 005 US4(H4): 멘토 심층 코멘트 작성 입력.
+export const mentorFeedbackParamsSchema = z.object({ submissionId: z.coerce.number().int().positive() });
+export const mentorFeedbackBodySchema = z.object({ content: z.string().min(1).max(20000) });
 
 export async function listHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -41,6 +51,26 @@ export async function feedbackHandler(req: Request, res: Response, next: NextFun
   try {
     const { submissionId } = req.params as unknown as z.infer<typeof feedbackParamsSchema>;
     res.status(200).json(await getSubmissionFeedback(userId(req), submissionId));
+  } catch (err) {
+    next(err);
+  }
+}
+
+// 005 US4(H4): 멘토가 학생 제출물에 심층 코멘트 작성.
+export async function mentorFeedbackHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { submissionId } = req.params as unknown as z.infer<typeof mentorFeedbackParamsSchema>;
+    const body = req.body as z.infer<typeof mentorFeedbackBodySchema>;
+    res.status(201).json(await addMentorFeedback(userId(req), submissionId, body.content));
+  } catch (err) {
+    next(err);
+  }
+}
+
+// 005 US4(H4): 멘토에게 배정된 검수 대기 제출물 목록.
+export async function mentorAssignmentsHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    res.status(200).json(await listMentorAssignments(userId(req)));
   } catch (err) {
     next(err);
   }

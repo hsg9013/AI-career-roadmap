@@ -12,6 +12,10 @@ import {
   verifyWebhookSignature,
   devReceiptUrl,
 } from './payments/portone.js';
+import { env } from '../config/env.js';
+
+// 005 US6(H6): 결제 가상 시나리오 — 데모용 강제 성공/실패(테스트모드에서만).
+export type ForceResult = 'success' | 'fail';
 
 // 003 US3: 결제(멤버십·단건) 실거래 + 정산 + 웹훅 멱등 (FR-006/FR-007).
 //   • checkout: pending 결제 생성 → 실연동은 PortOne 세션 반환(웹훅이 확정), dev 무키는 즉시 승인.
@@ -95,10 +99,14 @@ export async function checkout(
   kind: PaymentKind,
   amount: number,
   plan: string,
+  forceResult?: ForceResult,
 ): Promise<CheckoutResult> {
   if (amount <= 0) {
     throw new HttpError(422, 'INVALID_AMOUNT', '결제 금액이 올바르지 않습니다.');
   }
+
+  // 005 US6(H6): 가상 시나리오는 테스트모드(PAYMENT_SANDBOX_ENABLED)에서만 허용.
+  const scenario = env.PAYMENT_SANDBOX_ENABLED ? forceResult : undefined;
 
   const merchantUid = newMerchantUid();
   const session = createSession(merchantUid);
@@ -113,8 +121,22 @@ export async function checkout(
     );
     const paymentId = (ins as { insertId: number }).insertId;
 
+    // 005 US6(H6): 가상 '실패' 시나리오 → 결제 실패 처리, 멤버십 등급 불변.
+    if (scenario === 'fail') {
+      await conn.query(`UPDATE payments SET status = 'failed' WHERE id = ?`, [paymentId]);
+      return {
+        payment_id: paymentId,
+        status: 'failed' as const,
+        membership_ends_at: null,
+        pg_tx_id: merchantUid,
+        receipt_url: null,
+        redirect_url: null,
+      };
+    }
+
     // 실연동: 결제창으로 진행 → 웹훅 확정. pending 반환.
-    if (!session.devAutoApprove) {
+    // (단, 가상 '성공' 시나리오는 결제창 없이 즉시 승인 경로로 진행)
+    if (!session.devAutoApprove && scenario !== 'success') {
       return {
         payment_id: paymentId,
         status: 'pending' as const,

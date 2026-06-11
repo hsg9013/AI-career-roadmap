@@ -190,6 +190,53 @@ export async function getSubmissionFeedback(userId: number, submissionId: number
   }
 }
 
+// 005 US4(H4): 현직자(멘토) 심층 코멘트 작성 — feedbacks(kind='mentor')로 저장하고
+// review_assignment 를 completed 로 마감한다. 학생은 기존 getSubmissionFeedback 으로 결합 조회한다.
+export async function addMentorFeedback(
+  mentorUserId: number,
+  submissionId: number,
+  content: string,
+): Promise<{ submission_id: number; kind: 'mentor'; content: string }> {
+  return withTransaction(async (conn) => {
+    const [mrows] = await conn.query('SELECT id FROM mentors WHERE user_id = ? LIMIT 1', [mentorUserId]);
+    const mentorId = (mrows as Array<{ id: number }>)[0]?.id;
+    if (!mentorId) throw new HttpError(403, 'NOT_A_MENTOR', '현직자(멘토) 계정만 코멘트를 작성할 수 있습니다.');
+
+    const [srows] = await conn.query('SELECT id FROM submissions WHERE id = ? LIMIT 1', [submissionId]);
+    if (!(srows as unknown[]).length) throw new HttpError(404, 'SUBMISSION_NOT_FOUND', 'Submission not found');
+
+    await conn.query(
+      `INSERT INTO feedbacks (submission_id, kind, mentor_id, content) VALUES (?, 'mentor', ?, ?)`,
+      [submissionId, mentorId, content],
+    );
+    await conn.query(
+      "UPDATE review_assignments SET status = 'completed' WHERE submission_id = ?",
+      [submissionId],
+    );
+    await track(mentorUserId, 'mentor_feedback_added', { submission_id: submissionId });
+    return { submission_id: submissionId, kind: 'mentor', content };
+  });
+}
+
+// 005 US4(H4): 멘토에게 배정된(검수 대기) 제출물 목록 — 멘토가 코멘트를 달 대상.
+export async function listMentorAssignments(mentorUserId: number): Promise<unknown[]> {
+  const [rows] = await getPool().query(
+    `SELECT s.id AS submission_id, s.content, s.state,
+            m.title AS mission_title,
+            ra.status AS review_status,
+            DATE_FORMAT(ra.deadline, '%Y-%m-%dT%H:%i:%sZ') AS deadline
+       FROM review_assignments ra
+       JOIN mentors me ON me.id = ra.mentor_id
+       JOIN submissions s ON s.id = ra.submission_id
+       JOIN missions m ON m.id = s.mission_id
+      WHERE me.user_id = ? AND ra.status IN ('pending')
+      ORDER BY ra.deadline ASC
+      LIMIT 50`,
+    [mentorUserId],
+  );
+  return rows as unknown[];
+}
+
 // 워커 진입점: SLA 만료 처리 — 미완료면 재배정 시도, 실패 시 AI 대체 (FR-012)
 export async function processReviewSla(submissionId: number): Promise<void> {
   await withTransaction(async (conn) => {

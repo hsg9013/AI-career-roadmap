@@ -24,13 +24,23 @@ const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(
   CATEGORIES.map((c) => [c.value, c.label]),
 );
 
-const form = ref<{ category: ActivityCategory; title: string; started_at: string; outcome: string }>({
+const form = ref<{
+  category: ActivityCategory;
+  title: string;
+  started_at: string;
+  ended_at: string;
+  outcome: string;
+}>({
   category: 'project',
   title: '',
   started_at: '',
+  ended_at: '',
   outcome: '',
 });
 const selectedSkills = ref<string[]>([]); // 이 활동이 보여주는 역량(태그 → 진단 점수 반영)
+
+// 005 US5(H5): 기간 입력 — 종료일이 시작일보다 앞서면 거부(진행 중이면 종료일 비움).
+const periodError = ref('');
 
 function toggleSkill(s: string): void {
   const i = selectedSkills.value.indexOf(s);
@@ -46,16 +56,25 @@ onMounted(() => {
 
 async function add(): Promise<void> {
   if (!form.value.title || !form.value.started_at) return;
+  // 005 US5(H5): 기간 검증 — 종료일이 있으면 시작일 이상이어야 한다.
+  periodError.value = '';
+  if (form.value.ended_at && form.value.ended_at < form.value.started_at) {
+    periodError.value = '종료일은 시작일보다 빠를 수 없습니다.';
+    return;
+  }
   await store
     .create({
       category: form.value.category,
       title: form.value.title,
       started_at: form.value.started_at,
+      ended_at: form.value.ended_at || undefined,
       outcome: form.value.outcome || undefined,
       manual_tags: selectedSkills.value.length ? [...selectedSkills.value] : undefined,
     })
     .then(() => {
       form.value.title = '';
+      form.value.started_at = '';
+      form.value.ended_at = '';
       form.value.outcome = '';
       selectedSkills.value = [];
     })
@@ -84,10 +103,13 @@ async function add(): Promise<void> {
         <option v-for="c in CATEGORIES" :key="c.value" :value="c.value">{{ c.label }}</option>
       </select>
       <input v-model="form.title" placeholder="제목 (예: 캡스톤 프로젝트)" class="grow" />
-      <input v-model="form.started_at" type="date" />
+      <label class="period">시작 <input v-model="form.started_at" type="date" /></label>
+      <label class="period">종료 <input v-model="form.ended_at" type="date" :min="form.started_at" /></label>
       <input v-model="form.outcome" placeholder="성과(선택)" />
       <button :disabled="store.loading || !form.title || !form.started_at" @click="add">추가</button>
     </div>
+    <p class="muted period-hint">기간으로 입력하세요(시작일~종료일). 진행 중이면 종료일은 비워 둡니다.</p>
+    <p v-if="periodError" class="error">{{ periodError }}</p>
 
     <div v-if="store.suggestedSkills.length" class="skills">
       <span class="skills-label">이 활동이 보여주는 역량 <small>(선택 — 진단 점수에 반영됩니다)</small></span>
@@ -108,7 +130,7 @@ async function add(): Promise<void> {
       <li v-for="a in store.items" :key="a.id">
         <span class="cat">{{ CATEGORY_LABEL[a.category] ?? a.category }}</span>
         <span class="title">{{ a.title }}</span>
-        <span class="date muted">{{ a.started_at }}</span>
+        <span class="date muted">{{ a.started_at }}<template v-if="a.ended_at"> ~ {{ a.ended_at }}</template><template v-else> ~ 진행 중</template></span>
         <button class="del" @click="store.remove(a.id)">삭제</button>
       </li>
       <li v-if="!store.items.length" class="empty muted">아직 기록이 없습니다. 첫 활동·스펙을 추가해 보세요.</li>
@@ -127,6 +149,8 @@ async function add(): Promise<void> {
 .add { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
 .add .grow { flex: 1; min-width: 180px; }
 .add input, .add select { border: 1px solid #d1d5db; border-radius: 8px; padding: 0.45rem 0.6rem; }
+.add .period { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.82rem; color: #6b7280; }
+.period-hint { margin: 0.4rem 0 0; font-size: 0.8rem; }
 .add button { background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 0.45rem 1rem; cursor: pointer; }
 .add button:disabled { opacity: 0.5; cursor: not-allowed; }
 .list { list-style: none; padding: 0; margin: 1rem 0 0; }

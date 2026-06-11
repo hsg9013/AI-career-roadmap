@@ -8,6 +8,10 @@ import {
   submitBodySchema,
   feedbackHandler,
   feedbackParamsSchema,
+  mentorFeedbackHandler,
+  mentorFeedbackParamsSchema,
+  mentorFeedbackBodySchema,
+  mentorAssignmentsHandler,
 } from './handlers.js';
 
 // /v1/missions — 목록 + 제출
@@ -24,5 +28,15 @@ missionsRouter.post(
 export const submissionsRouter: Router = Router();
 submissionsRouter.use(requireAuth, requireRole('student'));
 submissionsRouter.get('/:submissionId/feedback', validate({ params: feedbackParamsSchema }), feedbackHandler);
+
+// 005 US4(H4): /v1/mentor — 현직자 심층 코멘트 작성 (멘토 전용)
+export const mentorRouter: Router = Router();
+mentorRouter.use(requireAuth, requireRole('mentor'));
+mentorRouter.get('/submissions', mentorAssignmentsHandler);
+mentorRouter.post(
+  '/submissions/:submissionId/feedback',
+  validate({ params: mentorFeedbackParamsSchema, body: mentorFeedbackBodySchema }),
+  mentorFeedbackHandler,
+);
 
 export default missionsRouter;

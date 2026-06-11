@@ -16,7 +16,9 @@ export type AnalyticsEvent =
   | 'membership_canceled'
   | 'revisit'
   // 004 (T043 / analyze C1): 활동·스펙 입력 KPI (SC-001/002)
-  | 'activity_recorded';
+  | 'activity_recorded'
+  // 005 US4(H4): 멘토 심층 코멘트 작성
+  | 'mentor_feedback_added';
 
 export async function track(
   userId: number | null,

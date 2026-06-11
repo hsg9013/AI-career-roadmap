@@ -20,12 +20,14 @@ export const checkoutBodySchema = z.object({
   kind: z.enum(['membership', 'one_time']).default('membership'),
   amount: z.number().int(),
   plan: z.string().max(40).default('standard'),
+  // 005 US6(H6): 데모 가상 시나리오 — 테스트모드에서 성공/실패 강제(등급 변경 시연).
+  force_result: z.enum(['success', 'fail']).optional(),
 });
 
 export async function checkoutHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const body = req.body as z.infer<typeof checkoutBodySchema>;
-    const result = await checkout(userId(req), body.kind, body.amount, body.plan);
+    const result = await checkout(userId(req), body.kind, body.amount, body.plan, body.force_result);
     res.status(200).json(result);
   } catch (err) {
     next(err);

@@ -14,6 +14,11 @@
     "retention:run": "tsx scripts/retention.ts",
     "seed:usage": "tsx scripts/seed-usage.ts",
     "seed:admin": "tsx scripts/seed-admin.ts",
+    "seed:demo": "tsx scripts/seed-demo-accounts.ts",
+    "seed:alumni": "tsx scripts/seed-alumni-samples.ts",
+    "seed:alumni-timelines": "tsx scripts/seed-alumni-timelines.ts",
+    "seed:missions": "tsx scripts/seed-job-missions.ts",
+    "seed:005": "pnpm seed:alumni && pnpm seed:alumni-timelines && pnpm seed:missions && pnpm seed:demo",
     "test": "vitest run",
     "test:watch": "vitest",
     "backup:run": "tsx ops/backup/backup.ts"

@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import bcrypt from 'bcrypt';
 import { requireAuth, requireRole } from '../../middlewares/auth.js';
 import { validate } from '../../middlewares/requestValidator.js';
 import { getPool } from '../../db/pool.js';
+import { withTransaction } from '../../db/pool.js';
 import { env } from '../../config/env.js';
 import { HttpError } from '../../middlewares/errorHandler.js';
 
@@ -46,9 +48,58 @@ async function trackHandler(req: Request, res: Response, next: NextFunction): Pr
   }
 }
 
+// ── 005 US3(H3): 파트너 자체 회원가입 ──
+// 004의 '운영자 수동 등록'과 조화: 자체 가입은 역할 계정을 발급하되 partner.status='pending'(운영자 활성화 게이트).
+const ROLE_BY_PARTNER: Record<string, 'university' | 'enterprise' | 'mentor' | null> = {
+  university: 'university',
+  company: 'enterprise',
+  mentor_org: 'mentor',
+  edu_platform: null, // 교육·활동 플랫폼: 제휴 배너 제공자 — 로그인 역할 없음(파트너 레코드만)
+};
+const signupBody = z.object({
+  partner_type: z.enum(['university', 'company', 'mentor_org', 'edu_platform']),
+  org_name: z.string().min(1).max(160),
+  contact_email: z.string().email().max(200),
+  password: z.string().min(8).max(100).optional(),
+});
+async function signupHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const b = req.body as z.infer<typeof signupBody>;
+    const role = ROLE_BY_PARTNER[b.partner_type];
+    const result = await withTransaction(async (conn) => {
+      const [pins] = await conn.query(
+        "INSERT INTO partner (type, name, consent_scope, status) VALUES (?, ?, 'stats', 'pending')",
+        [b.partner_type, b.org_name],
+      );
+      const partnerId = (pins as { insertId: number }).insertId;
+      let accountCreated = false;
+      if (role) {
+        if (!b.password) throw new HttpError(400, 'PASSWORD_REQUIRED', '이 파트너 유형은 로그인 비밀번호가 필요합니다.');
+        const [ex] = await conn.query('SELECT id FROM users WHERE email = ? LIMIT 1', [b.contact_email]);
+        if ((ex as unknown[]).length) throw new HttpError(409, 'EMAIL_EXISTS', '이미 가입된 이메일입니다.');
+        const hash = await bcrypt.hash(b.password, 10);
+        const [uins] = await conn.query(
+          'INSERT INTO users (email, password_hash, role, email_verified, is_active) VALUES (?, ?, ?, 0, 1)',
+          [b.contact_email, hash, role],
+        );
+        await conn.query('INSERT INTO partner_account (partner_id, user_id) VALUES (?, ?)', [
+          partnerId,
+          (uins as { insertId: number }).insertId,
+        ]);
+        accountCreated = true;
+      }
+      return { partner_id: partnerId, partner_type: b.partner_type, role, status: 'pending', account_created: accountCreated };
+    });
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export const partnersRouter: Router = Router();
 partnersRouter.get('/banners', bannersHandler);
 partnersRouter.post('/banners/:id/track', validate({ params: trackParams, body: trackBody }), trackHandler);
+partnersRouter.post('/signup', validate({ body: signupBody }), signupHandler);
 
 // ── 파트너 등록(운영자) ──
 const partnerInput = z.object({

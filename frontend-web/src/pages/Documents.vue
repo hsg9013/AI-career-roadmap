@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useDocumentsStore, type DocType, type DocumentItem } from 'frontend-shared';
+import { downloadPdf, downloadDocx } from '../lib/export/documentExport';
 
 // US3 문서 자동 생성 페이지
+// 005 US5(H5): 생성된 문서를 화면 캡처가 아닌 실제 파일(PDF/Word)로 다운로드.
 
 const docs = useDocumentsStore();
 const busy = ref(false);
@@ -53,7 +55,11 @@ async function generate(type: DocType): Promise<void> {
           <span class="badge">v{{ d.version }}</span>
           <span class="status" :class="d.status">{{ d.status }}</span>
         </div>
-        <button v-if="d.status !== 'final'" :disabled="busy" @click="docs.finalize(d.id)">확정</button>
+        <div class="doc-actions">
+          <button class="dl" @click="downloadPdf(d.title, d.content)">PDF</button>
+          <button class="dl" @click="downloadDocx(d.title, d.content)">Word</button>
+          <button v-if="d.status !== 'final'" :disabled="busy" @click="docs.finalize(d.id)">확정</button>
+        </div>
       </li>
     </ul>
     <p v-if="!docs.loading && docs.documents.length === 0" class="muted empty">아직 생성된 문서가 없습니다.</p>
@@ -75,5 +81,8 @@ async function generate(type: DocType): Promise<void> {
 .badge { margin-left: 0.5rem; font-size: 0.75rem; color: #6b7280; }
 .status { margin-left: 0.5rem; font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 999px; background: #f3f4f6; }
 .status.final { background: #dcfce7; color: #166534; }
+.doc-actions { display: flex; gap: 0.4rem; align-items: center; }
+.doc-actions .dl { background: #fff; border: 1px solid #2563eb; color: #2563eb; border-radius: 6px; padding: 0.3rem 0.7rem; font-size: 0.82rem; cursor: pointer; }
+.doc-actions .dl:hover { background: #eff6ff; }
 .empty { text-align: center; margin-top: 2rem; }
 </style>

@@ -1,0 +1,338 @@
+openapi: 3.0.3
+info:
+  title: AI 커리어 로드맵 플랫폼 — 005 델타 (역할별 실동작·세션/문서/결제 실구현)
+  version: 0.5.0
+  description: >
+    005에서 추가/변경되는 엔드포인트만 기술한 델타 계약. 기존 003/004 계약 위에서 동작한다.
+    네트워크 표준: 운영 https://p16.sumzip.com/api/v1, 로컬 http://localhost:9536/v1.
+servers:
+  - url: https://p16.sumzip.com/api/v1
+  - url: http://localhost:9536/v1
+
+paths:
+  # ── H1 합격 경험 공유 → 로드맵 연계 ──
+  /alumni/success-experiences:
+    post:
+      summary: 현직자·선배 합격 경험 등록(익명화 적재)
+      tags: [H1-합격경험공유]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SuccessExperienceInput' }
+      responses:
+        '201':
+          description: 등록 성공(PII 제거·코호트 적재)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessExperience' }
+        '400': { description: 입력 검증 실패 }
+        '401': { description: 인증 필요 }
+    get:
+      summary: 직무 코호트 표본 메타 조회(추천 근거용)
+      tags: [H1-합격경험공유]
+      parameters:
+        - { name: job_code, in: query, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 코호트 표본 수·k 충족 여부
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CohortMeta' }
+
+  /roadmap/generate:
+    post:
+      summary: 로드맵 생성(같은 직무 코호트 표본 근거, 미달 시 일반 가이드 폴백)
+      tags: [H1-합격경험공유]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [job_code]
+              properties:
+                job_code: { type: string }
+      responses:
+        '200':
+          description: 추천 결과(근거·폴백 여부 포함)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoadmapResult' }
+
+  # ── H2 인증·세션 (서버측: 로그아웃·세션 확인) ──
+  /auth/logout:
+    post:
+      summary: 로그아웃 — 세션·토큰 무효화(클라이언트는 저장소 클리어 후 메인 이동)
+      tags: [H2-인증세션]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: 무효화 성공 }
+  /auth/session:
+    get:
+      summary: 부팅 하이드레이션용 현재 세션 검증·유저 재조회
+      tags: [H2-인증세션]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 유효 세션
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionUser' }
+        '401': { description: 만료/무효 — 클라이언트 저장소 클리어 트리거 }
+
+  # ── H3 파트너별 가입·권한 ──
+  /partners/signup:
+    post:
+      summary: 파트너 유형별 회원가입(역할 계정 발급)
+      tags: [H3-파트너가입권한]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PartnerSignupInput' }
+      responses:
+        '201': { description: 가입 접수/역할 계정 발급 }
+        '400': { description: partner_type별 양식 검증 실패 }
+  /auth/menus:
+    get:
+      summary: 로그인 역할의 허용 메뉴 목록(내비게이션·가드 단일 출처)
+      tags: [H3-파트너가입권한]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 허용 메뉴 키 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  role: { type: string }
+                  allowed_menu_keys: { type: array, items: { type: string } }
+
+  # ── H4 역할별 실동작 ──
+  /companies/talent-search:
+    get:
+      summary: 기업 인재 검색(산업·직무 드롭다운 코드 매칭)
+      tags: [H4-역할별실동작]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: industry_code, in: query, required: true, schema: { type: string } }
+        - { name: job_code, in: query, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 매칭 인재 목록(0건 시 빈 배열+조건 안내)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TalentMatch' }
+  /missions/{missionId}/comments:
+    post:
+      summary: 멘토 심층 코멘트 작성(학생 제출물에 연결)
+      tags: [H4-역할별실동작]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: missionId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [submission_id, comment]
+              properties:
+                submission_id: { type: string }
+                comment: { type: string }
+      responses:
+        '201': { description: 코멘트 등록(학생 화면 노출) }
+  /dashboard/score:
+    get:
+      summary: 대시보드 점수(데모 계정 포함, 입력 데이터 기반 산출)
+      tags: [H4-역할별실동작]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 점수·지표
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardScore' }
+
+  # ── H5 활동 기간·문서 ──
+  /activities:
+    post:
+      summary: 활동·스펙 등록(기간 시작~종료)
+      tags: [H5-활동문서]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ActivityInput' }
+      responses:
+        '201': { description: 등록 성공 }
+        '400': { description: end_date < start_date 등 검증 실패 }
+  /documents/{docType}/export-data:
+    get:
+      summary: 문서 생성 입력 데이터(클라이언트 PDF/docx 생성용) — 빈 기록 시 안내
+      tags: [H5-활동문서]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: docType, in: path, required: true, schema: { type: string, enum: [resume, cover_letter, portfolio] } }
+        - { name: format, in: query, required: true, schema: { type: string, enum: [pdf, docx] } }
+      responses:
+        '200':
+          description: 활동·스펙 누적 데이터(문서 초안 입력)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentExportData' }
+        '409': { description: 활동 기록 없음 — 먼저 기록 안내 }
+
+  # ── H6 결제·노출 ──
+  /payments/checkout:
+    post:
+      summary: 결제(테스트모드/가상 시나리오) — 성공 시 등급 변경, 실패 시 팝업
+      tags: [H6-결제노출]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan_target, mode]
+              properties:
+                plan_target: { type: string }
+                mode: { type: string, enum: [sandbox, virtual] }
+                force_result: { type: string, enum: [success, fail], description: 가상 시나리오 데모용 }
+      responses:
+        '200':
+          description: 결제 결과(실거래 아님 표기)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaymentResult' }
+  /promotions:
+    get:
+      summary: 광고·제휴·채용 노출 목록(가입자 희망 산업·직무 맞춤·숨김 없음)
+      tags: [H6-결제노출]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 직무 적합·동의 충족 노출 항목('광고/제휴' 표기)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Promotion' }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  schemas:
+    SuccessExperienceInput:
+      type: object
+      required: [job_code, industry_code, admit_year, timeline]
+      properties:
+        job_code: { type: string }
+        industry_code: { type: string }
+        admit_year: { type: integer }
+        resume_summary: { type: string, description: PII 제거 }
+        portfolio_highlights: { type: array, items: { type: string } }
+        skills: { type: array, items: { type: string } }
+        timeline:
+          type: array
+          items:
+            type: object
+            properties:
+              term: { type: string }
+              type: { type: string, enum: [certificate, contest, intern, project, club, volunteer] }
+              title: { type: string }
+              start_date: { type: string, format: date }
+              end_date: { type: string, format: date, nullable: true }
+    SuccessExperience:
+      allOf:
+        - $ref: '#/components/schemas/SuccessExperienceInput'
+        - type: object
+          properties:
+            id: { type: string }
+            anonymized: { type: boolean }
+            reward_status: { type: string, enum: [pending, granted] }
+    CohortMeta:
+      type: object
+      properties:
+        job_code: { type: string }
+        sample_count: { type: integer }
+        k_anonymity_met: { type: boolean, description: sample_count >= 5 }
+    RoadmapResult:
+      type: object
+      properties:
+        job_code: { type: string }
+        personalized: { type: boolean, description: false면 일반 가이드 폴백 }
+        rationale: { type: string, description: '같은 직무 합격 선배 N명 경로 + 요구역량 비중 기반' }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              term: { type: string }
+              recommendation: { type: string }
+    SessionUser:
+      type: object
+      properties:
+        user_id: { type: string }
+        role: { type: string }
+        name: { type: string }
+    PartnerSignupInput:
+      type: object
+      required: [partner_type, org_name, contact]
+      properties:
+        partner_type: { type: string, enum: [university, company, mentor, edu_activity_platform] }
+        org_name: { type: string }
+        contact: { type: string }
+        extra: { type: object, description: partner_type별 추가 양식 필드 }
+    TalentMatch:
+      type: object
+      properties:
+        student_id: { type: string }
+        job_code: { type: string }
+        match_score: { type: number }
+    DashboardScore:
+      type: object
+      properties:
+        total_score: { type: number }
+        breakdown: { type: object, additionalProperties: { type: number } }
+        is_demo: { type: boolean }
+    ActivityInput:
+      type: object
+      required: [category, title, start_date]
+      properties:
+        category: { type: string, description: 수강/프로젝트/동아리/봉사/공모전/대외활동/자격증/수상/인턴/아르바이트 }
+        title: { type: string }
+        start_date: { type: string, format: date }
+        end_date: { type: string, format: date, nullable: true, description: 진행중이면 null }
+    DocumentExportData:
+      type: object
+      properties:
+        doc_type: { type: string }
+        format: { type: string, enum: [pdf, docx] }
+        sections: { type: array, items: { type: object } }
+        source_activity_ids: { type: array, items: { type: string } }
+    PaymentResult:
+      type: object
+      properties:
+        result: { type: string, enum: [success, fail] }
+        is_real: { type: boolean, description: 항상 false (실거래 아님) }
+        from_tier: { type: string }
+        to_tier: { type: string, nullable: true, description: 실패 시 불변 }
+        message: { type: string }
+    Promotion:
+      type: object
+      properties:
+        id: { type: string }
+        placement_type: { type: string, enum: [ad, affiliate, jobposting] }
+        label: { type: string, description: 화면 '광고/제휴' 표기 }
+        title: { type: string }
+        match_industry_code: { type: string }
+        match_job_code: { type: string }

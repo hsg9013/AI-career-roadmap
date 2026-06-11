@@ -1,15 +1,32 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { RouterLink, RouterView } from 'vue-router';
+import { RouterLink, RouterView, useRouter } from 'vue-router';
 import { useAuthStore } from 'frontend-shared';
 const auth = useAuthStore();
+const router = useRouter();
 
-// 역할별 네비게이션 메뉴 (인증 사용자에게 표시)
+// 005 US2(H2): 로그아웃 — 세션 파기 후 즉시 처음 메인 화면으로 이동.
+async function onLogout(): Promise<void> {
+  await auth.logout();
+  router.replace('/');
+}
+
+// 005 US3(H3): 역할별 네비게이션 메뉴 — 권한에 맞는 서비스만 노출(권한 종속 UI).
+// 권한 밖 경로는 라우터 가드(useAuthGuard)가 /forbidden 으로 차단한다.
 const links = computed(() => {
   const role = auth.user?.role;
   if (role === 'admin') return [{ to: '/admin', label: '관리자 대시보드' }];
   if (role === 'university') return [{ to: '/university', label: '대학 대시보드' }];
   if (role === 'enterprise') return [{ to: '/company', label: '인재 검색' }];
+  if (role === 'mentor') {
+    // 현직자(멘토): 미션 출제·심층 코멘트 + 합격 경험 공유 + 알림
+    return [
+      { to: '/missions', label: '미션' },
+      { to: '/donate', label: '합격 경험 공유' },
+      { to: '/notifications', label: '알림' },
+    ];
+  }
+  // student (기본)
   return [
     { to: '/dashboard', label: '대시보드' },
     { to: '/activities', label: '활동·스펙' },
@@ -34,9 +51,12 @@ const links = computed(() => {
         <span class="grow"></span>
         <template v-if="auth.isAuthenticated">
           <span class="user">{{ auth.user?.email }}</span>
-          <button @click="auth.clearSession()">로그아웃</button>
+          <button @click="onLogout">로그아웃</button>
         </template>
-        <RouterLink v-else to="/login">로그인</RouterLink>
+        <template v-else>
+          <RouterLink to="/partner-signup" class="navlink">파트너 가입</RouterLink>
+          <RouterLink to="/login">로그인</RouterLink>
+        </template>
       </nav>
     </header>
     <main>
