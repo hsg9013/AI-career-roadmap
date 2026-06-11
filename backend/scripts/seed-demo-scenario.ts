@@ -181,10 +181,30 @@ async function main(): Promise<void> {
     }
   }
 
+  // ── 데모 멘토 '출제 미션' 시딩: IT/backend 미션 2개의 created_by 를 데모 멘토 user_id 로 지정 ──
+  const demoMentorUserId = await scalarId(
+    `SELECT id FROM users WHERE email = 'demo-mentor-backend@p16.local' LIMIT 1`,
+  );
+  let authoredMsg = 'skipped';
+  if (demoMentorUserId) {
+    const [upd] = await pool.query(
+      `UPDATE missions SET created_by = ?
+       WHERE id IN (
+         SELECT id FROM (
+           SELECT id FROM missions WHERE industry_code = 'IT' AND job_role_code = 'backend'
+           ORDER BY id LIMIT 2
+         ) t
+       )`,
+      [demoMentorUserId],
+    );
+    authoredMsg = `IT/backend 미션 ${(upd as { affectedRows: number }).affectedRows}개 → 데모 멘토 출제로 지정`;
+  }
+
   console.log('\n=== 데모 시나리오 시딩 완료 ===');
   console.log(`1) 대학: university_id=${universityId}, staff 연결 ${uniUserId ? 'OK(individual)' : '없음(데모대학 계정 부재)'}`);
   console.log(`2) 가상 인재: 신규 학생 ${createdStudents}명 / 진단 ${createdDiag}건 (조합 ${combos.length} × ${PER_COMBO}명)`);
   console.log(`3) 멘토↔학생 매핑: ${mappingMsg}`);
+  console.log(`4) 멘토 출제 미션: ${authoredMsg}`);
   await closePool();
   process.exit(0);
 }

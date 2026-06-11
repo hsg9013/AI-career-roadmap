@@ -13,6 +13,8 @@ import {
   mentorFeedbackParamsSchema,
   mentorFeedbackBodySchema,
   mentorAssignmentsHandler,
+  mentorStudentsHandler,
+  mentorMissionsHandler,
 } from './handlers.js';
 
 // /v1/missions — 목록 + 제출
@@ -35,6 +37,8 @@ submissionsRouter.get('/:submissionId/feedback', validate({ params: feedbackPara
 export const mentorRouter: Router = Router();
 mentorRouter.use(requireAuth, requireRole('mentor'));
 mentorRouter.get('/submissions', mentorAssignmentsHandler);
+mentorRouter.get('/students', mentorStudentsHandler); // 매핑 학생 목록
+mentorRouter.get('/missions', mentorMissionsHandler); // 출제 미션 현황
 mentorRouter.post(
   '/submissions/:submissionId/feedback',
   validate({ params: mentorFeedbackParamsSchema, body: mentorFeedbackBodySchema }),

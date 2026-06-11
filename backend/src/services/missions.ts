@@ -286,6 +286,52 @@ export async function listMentorAssignments(mentorUserId: number): Promise<unkno
   return rows as unknown[];
 }
 
+// 005 고도화: 멘토 메인 — 나에게 매핑된 학생 목록(검수 배정 기준, 상태 무관).
+export async function listMentorStudents(mentorUserId: number): Promise<unknown[]> {
+  const [rows] = await getPool().query(
+    `SELECT st.id AS student_id, st.major, st.year_in_school,
+            COUNT(DISTINCT s.id) AS submission_count,
+            SUM(ra.status = 'pending') AS pending_count
+       FROM review_assignments ra
+       JOIN mentors me ON me.id = ra.mentor_id
+       JOIN submissions s ON s.id = ra.submission_id
+       JOIN students st ON st.id = s.student_id
+      WHERE me.user_id = ?
+      GROUP BY st.id, st.major, st.year_in_school
+      ORDER BY pending_count DESC, st.id ASC
+      LIMIT 50`,
+    [mentorUserId],
+  );
+  return (rows as Array<{ student_id: number; major: string; year_in_school: number; submission_count: number | string; pending_count: number | string }>).map((r) => ({
+    student_id: r.student_id,
+    major: r.major,
+    year_in_school: r.year_in_school,
+    submission_count: Number(r.submission_count),
+    pending_count: Number(r.pending_count ?? 0),
+  }));
+}
+
+// 005 고도화: 멘토 메인 — 내가 출제한 미션 현황(created_by = 내 user_id) + 제출물 수.
+export async function listMentorMissions(mentorUserId: number): Promise<unknown[]> {
+  const [rows] = await getPool().query(
+    `SELECT m.id, m.title, m.industry_code, m.job_role_code, m.status,
+            (SELECT COUNT(*) FROM submissions s WHERE s.mission_id = m.id) AS submission_count
+       FROM missions m
+      WHERE m.created_by = ?
+      ORDER BY m.created_at DESC
+      LIMIT 50`,
+    [mentorUserId],
+  );
+  return (rows as Array<{ id: number; title: string; industry_code: string; job_role_code: string; status: string; submission_count: number | string }>).map((r) => ({
+    id: r.id,
+    title: r.title,
+    industry_code: r.industry_code,
+    job_role_code: r.job_role_code,
+    status: r.status,
+    submission_count: Number(r.submission_count),
+  }));
+}
+
 // 워커 진입점: SLA 만료 처리 — 미완료면 재배정 시도, 실패 시 AI 대체 (FR-012)
 export async function processReviewSla(submissionId: number): Promise<void> {
   await withTransaction(async (conn) => {

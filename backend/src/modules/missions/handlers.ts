@@ -7,6 +7,8 @@ import {
   listMySubmissions,
   addMentorFeedback,
   listMentorAssignments,
+  listMentorStudents,
+  listMentorMissions,
 } from '../../services/missions.js';
 import { HttpError } from '../../middlewares/errorHandler.js';
 
@@ -81,6 +83,22 @@ export async function mentorFeedbackHandler(req: Request, res: Response, next: N
 export async function mentorAssignmentsHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     res.status(200).json(await listMentorAssignments(userId(req)));
+  } catch (err) {
+    next(err);
+  }
+}
+
+// 005 고도화: 멘토 메인 — 매핑 학생 / 출제 미션 현황.
+export async function mentorStudentsHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    res.status(200).json(await listMentorStudents(userId(req)));
+  } catch (err) {
+    next(err);
+  }
+}
+export async function mentorMissionsHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    res.status(200).json(await listMentorMissions(userId(req)));
   } catch (err) {
     next(err);
   }

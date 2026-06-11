@@ -54,9 +54,23 @@ const commentFor = ref<number | null>(null);
 const comment = ref('');
 const mentorMsg = ref('');
 
+// 005 고도화: 멘토 메인 — 매핑 학생 / 출제 미션 현황
+interface MappedStudent { student_id: number; major: string; year_in_school: number; submission_count: number; pending_count: number }
+interface AuthoredMission { id: number; title: string; industry_code: string; job_role_code: string; status: string; submission_count: number }
+const mappedStudents = ref<MappedStudent[]>([]);
+const authoredMissions = ref<AuthoredMission[]>([]);
+
 async function fetchAssignments(): Promise<void> {
   const { data } = await getApi().get<Assignment[]>('/mentor/submissions');
   assignments.value = data;
+}
+async function fetchMentorOverview(): Promise<void> {
+  const [st, ms] = await Promise.all([
+    getApi().get<MappedStudent[]>('/mentor/students').catch(() => ({ data: [] })),
+    getApi().get<AuthoredMission[]>('/mentor/missions').catch(() => ({ data: [] })),
+  ]);
+  mappedStudents.value = st.data;
+  authoredMissions.value = ms.data;
 }
 
 async function submitComment(submissionId: number): Promise<void> {
@@ -75,8 +89,10 @@ async function submitComment(submissionId: number): Promise<void> {
 
 onMounted(() => {
   void catalog.load();
-  if (isMentor.value) void fetchAssignments();
-  else {
+  if (isMentor.value) {
+    void fetchAssignments();
+    void fetchMentorOverview();
+  } else {
     void store.fetchAll();
     void store.fetchMySubmissions();
   }
@@ -118,6 +134,15 @@ async function submit(): Promise<void> {
       </div>
 
       <p v-if="mentorMsg" class="feedback">{{ mentorMsg }}</p>
+
+      <!-- 005 고도화: 멘토 메인 요약 — 매핑 학생 / 출제 미션 / 미검수 대기 -->
+      <div class="m-summary">
+        <div class="m-card"><span class="k">매핑 학생</span><b>{{ mappedStudents.length }}</b><span class="u">명</span></div>
+        <div class="m-card"><span class="k">출제 미션</span><b>{{ authoredMissions.length }}</b><span class="u">건</span></div>
+        <div class="m-card hot"><span class="k">미검수 대기</span><b>{{ assignments.length }}</b><span class="u">건</span></div>
+      </div>
+
+      <h3 class="m-sec">미검수 코멘트 대기</h3>
       <ul class="list">
         <li v-for="a in assignments" :key="a.submission_id" class="mission">
           <div class="info">
@@ -134,6 +159,32 @@ async function submit(): Promise<void> {
           <button v-if="commentFor !== a.submission_id" @click="commentFor = a.submission_id">코멘트</button>
         </li>
         <li v-if="!assignments.length" class="muted">배정된 검수 대기 제출물이 없습니다.</li>
+      </ul>
+
+      <h3 class="m-sec">매핑된 학생</h3>
+      <ul class="list">
+        <li v-for="s in mappedStudents" :key="s.student_id" class="mission">
+          <div class="info">
+            <strong>학생 #{{ s.student_id }}</strong>
+            <span class="role">{{ s.major }} · {{ s.year_in_school }}학년</span>
+            <p class="muted">제출 {{ s.submission_count }}건 · 미검수 {{ s.pending_count }}건</p>
+          </div>
+          <span class="pill" :class="{ on: s.pending_count > 0 }">{{ s.pending_count > 0 ? '검수 필요' : '완료' }}</span>
+        </li>
+        <li v-if="!mappedStudents.length" class="muted">아직 매핑된 학생이 없습니다.</li>
+      </ul>
+
+      <h3 class="m-sec">내가 출제한 미션</h3>
+      <ul class="list">
+        <li v-for="m in authoredMissions" :key="m.id" class="mission">
+          <div class="info">
+            <strong>{{ m.title }}</strong>
+            <span class="role">{{ catalog.jobLabel(m.industry_code, m.job_role_code) }}</span>
+            <p class="muted">제출물 {{ m.submission_count }}건</p>
+          </div>
+          <span class="pill" :class="{ on: m.status === 'open' }">{{ m.status === 'open' ? '진행 중' : '마감' }}</span>
+        </li>
+        <li v-if="!authoredMissions.length" class="muted">출제한 미션이 없습니다.</li>
       </ul>
     </template>
 
@@ -210,6 +261,16 @@ async function submit(): Promise<void> {
 .composer { margin-top: 1.5rem; border-top: 1px solid #e5e7eb; padding-top: 1rem; }
 .composer textarea { width: 100%; box-sizing: border-box; margin-bottom: 0.5rem; }
 .feedback { background: #eff6ff; border-radius: 8px; padding: 0.7rem; margin-top: 0.7rem; }
+.m-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; margin: 1rem 0; }
+.m-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 0.8rem 1rem; display: flex; align-items: baseline; gap: 0.35rem; }
+.m-card .k { font-size: 0.82rem; color: #6b7280; margin-right: auto; }
+.m-card b { font-size: 1.5rem; color: #111827; }
+.m-card .u { font-size: 0.8rem; color: #6b7280; }
+.m-card.hot b { color: #b45309; }
+.m-sec { font-size: 1rem; margin: 1.4rem 0 0.5rem; }
+.pill { align-self: center; font-size: 0.74rem; padding: 0.15rem 0.55rem; border-radius: 999px; background: #f3f4f6; color: #6b7280; white-space: nowrap; }
+.pill.on { background: #fef3c7; color: #92400e; }
+@media (max-width: 720px) { .m-summary { grid-template-columns: 1fr; } }
 .my-subs { margin-top: 1.8rem; border-top: 1px solid #e5e7eb; padding-top: 1rem; }
 .my-subs h3 { font-size: 1.02rem; margin: 0 0 0.6rem; }
 .sub { border: 1px solid #e5e7eb; border-radius: 10px; padding: 0; overflow: hidden; }
