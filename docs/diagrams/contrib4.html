@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; margin: 0; color: #111; padding: 22px 26px; width: 1700px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; table-layout: fixed; }
+  th, td { border: 1px solid #d0d7de; padding: 8px 9px; vertical-align: top; text-align: left; }
+  th { background: #1f6feb; color:#fff; font-weight: 600; }
+  td.num { text-align: center; font-weight: 700; color:#1f6feb; }
+  td.who { text-align: center; font-weight: 700; white-space: nowrap; background:#e9f7ef; }
+  td.area { font-weight: 600; }
+  td.ev { font-size: 10.5px; color:#444; }
+  td.git { font-size: 10px; }
+  td.git code { font-family: ui-monospace, Menlo, monospace; }
+  tbody tr:nth-child(even) td:not(.who) { background: #fafbfc; }
+  b { color:#1f6feb; }
+</style>
+</head>
+<body>
+  <table>
+    <colgroup><col style="width:3%"><col style="width:14%"><col style="width:6%"><col style="width:38%"><col style="width:20%"><col style="width:19%"></colgroup>
+    <thead><tr><th>#</th><th>기능 영역</th><th>주담당</th><th>기여내용 (무엇을 / 어떻게)</th><th>① 캔버스 근거 (설계·의도)</th><th>② 커밋 근거 (구현)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="num">1</td><td class="area">실무 미션 직무 연결</td><td class="who">장민</td>
+        <td>미션을 직무에 맞춰 구성(백엔드 핵심 역량 과제, REST API 설계 미션, 경험·역량 연결 과제)</td>
+        <td class="ev">「갭 분석·개선 기회」 <b>G2</b>(미션 직무 미맞춤) · 「TO-BE 목표 기능」 · ISP §6·§7</td>
+        <td class="git"><code>fa295e1</code>(seed-job-missions), <code>dc0724b</code>(미션 실동작)</td>
+      </tr>
+      <tr>
+        <td class="num">2</td><td class="area">멘토 코멘트·피드백 흐름 시연</td><td class="who">장민</td>
+        <td>미션 화면에 제출물·검수 완료 상태·멘토 코멘트 버튼이 보이도록 구성 → 제출·피드백 구조를 시연 가능하게</td>
+        <td class="ev">「갭 분석·개선 기회」 <b>H4</b>(멘토·코멘트·점수 산출 불명확) · ISP §6</td>
+        <td class="git"><code>620587f</code>(멘토 메인 매핑), <code>d6a01d9</code>(미션 내 제출물·피드백), <code>efc896b</code></td>
+      </tr>
+      <tr>
+        <td class="num">3</td><td class="area">외부 채용·자격증·공모전 화면</td><td class="who">장민</td>
+        <td>교육·공모전 화면에 백엔드/데이터 채용, 정보처리기사·SQLD, 데이터 공모전·AI 해커톤이 구분 표시되도록 구성</td>
+        <td class="ev">「환경·개선 동인」(교육·활동 플랫폼 파트너) · 「TO-BE 목표 기능」(외부 데이터 수집) · ISP §2·§7</td>
+        <td class="git"><code>6caf733</code>(교육·공모전 외부피드), <code>0037295</code>(external_feed), <code>3fc32ef</code></td>
+      </tr>
+      <tr>
+        <td class="num">4</td><td class="area">알림 채널 정리</td><td class="who">장민</td>
+        <td>알림 화면에서 앱 내 알림·모바일 푸시·이메일 수신 설정이 구분되도록 구성</td>
+        <td class="ev">「TO-BE 목표 기능」(진척·알림) · 「이행 과제·우선순위」(푸시·이메일 완성) · ISP §7·§11</td>
+        <td class="git"><code>0037295</code>(알림 설정·딜리버리), <code>f5d6da1</code>(notifications 기반)</td>
+      </tr>
+      <tr>
+        <td class="num">5</td><td class="area">멤버십·수익 구조 화면 연결</td><td class="who">장민</td>
+        <td>멤버십 화면에 무료/프리미엄 차이, 월 9,900원 구독, AI 자소서 첨삭·이력서 피드백·실전 과제 평가·현직자 멘토링 단건 서비스 노출</td>
+        <td class="ev">「정보화 비전·목표」(수익 4채널) · 「TO-BE 목표 기능」(멤버십·단건·광고·제휴) · ISP §1·§7</td>
+        <td class="git"><code>fffb56d</code>(역할별 메인+멤버십), <code>916ac9c</code>(무료/멤버십 2단계), <code>d8df442</code>(수익모델)</td>
+      </tr>
+      <tr>
+        <td class="num">6</td><td class="area">결제 테스트 + 광고·제휴 노출</td><td class="who">장민</td>
+        <td>멤버십 화면에 테스트모드 문구·가상 성공/실패·결제 완료 상태 구성. 광고·제휴·공고는 <b>직무 적합성 기준 노출</b></td>
+        <td class="ev">「갭 분석·개선 기회」 <b>H6</b> · 「TO-BE 앱·기술 아키텍처」 · ISP §6·§9</td>
+        <td class="git"><code>dc0724b</code>(결제 샌드박스·테스트모드), <code>7407249</code>(배너 직무 맞춤 노출)</td>
+      </tr>
+      <tr>
+        <td class="num">7</td><td class="area">AI 협업 · speckit 반복 개선</td><td class="who">장민</td>
+        <td>specify → plan → tasks → implement 흐름과 1차 기본 구조 → 2차 갭 분석 반영 → 3차 시연 강화의 반복 개선 과정을 발표 구조로 정리</td>
+        <td class="ev">「이행 로드맵」 · 「이행 과제·우선순위」(검증 단위 점진 개선) · ISP §11·§12</td>
+        <td class="git"><code>dc0724b</code>·<code>fa295e1</code>(speckit 산출물), <code>0037295</code>(루프별 개선)</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
