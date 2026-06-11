@@ -7,6 +7,12 @@ import { getApi } from '../api/client.js';
 
 export type Role = 'student' | 'mentor' | 'university' | 'enterprise' | 'admin';
 
+// 진행 중 refresh 약속(single-flight) — defineStore 팩토리 밖(모듈 스코프)에 두어
+// 스토어 인스턴스가 둘 이상이어도(부팅 시 useAuthStore(pinia) vs 인터셉터의 useAuthStore())
+// 단 하나의 /auth/refresh 만 비행하도록 강제한다. 회전형 refresh 토큰에서 동시/중복 요청이
+// 옛 토큰을 재전송하면 백엔드 재사용 탐지가 family 를 통째로 무효화하기 때문이다.
+let refreshInFlight: Promise<boolean> | null = null;
+
 export interface SessionUser {
   id: number;
   email: string;
@@ -45,7 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 005 US2(H2): 부팅 시 refresh(HttpOnly 쿠키)로 세션 복원 — 새로고침(F5)에도 로그인 유지.
   // access token은 보안상 저장소에 두지 않고(메모리), refresh 쿠키로 부팅마다 재발급한다.
-  async function restoreSession(): Promise<boolean> {
+  async function doRestore(): Promise<boolean> {
     try {
       const { data } = await getApi().post<{ access_token: string }>('/auth/refresh');
       const claims = decodeJwtPayload(data.access_token);
@@ -64,6 +70,15 @@ export const useAuthStore = defineStore('auth', () => {
       clearSession();
       return false;
     }
+  }
+
+  // 모듈 스코프 refreshInFlight 를 공유해 동시/중복 refresh 를 하나로 합친다(위 주석 참조).
+  async function restoreSession(): Promise<boolean> {
+    if (refreshInFlight) return refreshInFlight;
+    refreshInFlight = doRestore().finally(() => {
+      refreshInFlight = null;
+    });
+    return refreshInFlight;
   }
 
   // 401 인터셉터용 토큰 회전 — refresh 성공 시 새 access token 반환(원요청 재시도), 실패 시 null.

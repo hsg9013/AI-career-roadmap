@@ -23,12 +23,18 @@ function isProduction(): boolean {
   return env.NODE_ENV === 'production';
 }
 
+// SPA 는 리버스 프록시(vite dev `/api`, 운영 nginx)를 거쳐 refresh 를 호출하므로
+// 브라우저가 보는 요청 경로(`/api/v1/auth/refresh`)는 백엔드 라우트(`/v1/auth/refresh`)와 다르다.
+// 백엔드는 프록시 프리픽스를 알 수 없으니 쿠키 path 를 '/' 로 두어 프리픽스와 무관하게 전송되게 한다.
+// (httpOnly + SameSite=Lax 로 보호. 동일 출처 요청에만 동봉.)
+const REFRESH_COOKIE_PATH = '/';
+
 function refreshCookieOptions(): Record<string, unknown> {
   return {
     httpOnly: true,
     secure: isProduction(),
     sameSite: 'lax' as const,
-    path: '/v1/auth',
+    path: REFRESH_COOKIE_PATH,
     maxAge: env.JWT_REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
   };
 }
@@ -131,7 +137,7 @@ export async function logoutHandler(
   try {
     const raw = readRefreshCookie(req);
     await logoutService(raw);
-    res.clearCookie(REFRESH_COOKIE_NAME, { path: '/v1/auth' });
+    res.clearCookie(REFRESH_COOKIE_NAME, { path: REFRESH_COOKIE_PATH });
     res.status(204).end();
   } catch (err) {
     next(err);

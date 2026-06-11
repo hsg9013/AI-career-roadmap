@@ -150,7 +150,7 @@ describe('auth flow — register → login → refresh → logout', () => {
     );
     expect(refreshCookie).toBeDefined();
     expect(refreshCookie).toContain('HttpOnly');
-    expect(refreshCookie).toContain('Path=/v1/auth');
+    expect(refreshCookie).toContain('Path=/');
   });
 
   it('refresh 회전 + 재사용 시 family revoke', async () => {

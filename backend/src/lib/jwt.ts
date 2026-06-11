@@ -1,4 +1,5 @@
 import jwt, { type SignOptions } from 'jsonwebtoken';
+import { randomUUID } from 'node:crypto';
 import { env } from '../config/env.js';
 
 // T021: 액세스/refresh JWT + scope 클레임 빌더 (R-5/R-7)
@@ -25,6 +26,7 @@ export interface AccessTokenClaims {
 export interface RefreshTokenClaims {
   sub: number;
   family: string;          // refresh 회전 가족 식별자
+  jti?: string;            // 토큰 고유 식별자 — 같은 초에 회전해도 토큰(=hash)이 항상 distinct하도록
   iat?: number;
   exp?: number;
 }
@@ -41,8 +43,11 @@ export function signAccessToken(claims: Omit<AccessTokenClaims, 'iat' | 'exp'>):
   }));
 }
 
-export function signRefreshToken(claims: Omit<RefreshTokenClaims, 'iat' | 'exp'>): string {
-  return jwt.sign(claims, env.JWT_REFRESH_SECRET, asSignOptions({
+export function signRefreshToken(claims: Omit<RefreshTokenClaims, 'iat' | 'exp' | 'jti'>): string {
+  // jti(randomUUID)를 부여해 토큰 문자열·sha256 해시가 항상 유일하도록 한다.
+  // 그렇지 않으면 동일 초에 회전(rotateRefresh) 시 sub+family+iat 가 같아 바이트 동일 토큰이
+  // 재발급되고, DB에 같은 token_hash 가 (revoked + active) 중복되어 다음 회전이 재사용으로 오탐된다.
+  return jwt.sign({ ...claims, jti: randomUUID() }, env.JWT_REFRESH_SECRET, asSignOptions({
     expiresIn: `${env.JWT_REFRESH_TTL_DAYS}d`,
     algorithm: 'HS256',
   }));

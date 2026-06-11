@@ -22,11 +22,16 @@ export default defineConfig(({ mode }) => {
       port,
       strictPort: true,
       allowedHosts: ['p16.sumzip.com', 'localhost', '192.168.0.19'],
-      hmr: {
-        host: 'p16.sumzip.com',
-        clientPort: 443,
-        protocol: 'wss',
-      },
+      // 운영 도메인 경유 HMR(wss). E2E(로컬 headless)에서는 이 호스트로 접속이 불가해
+      // "connection lost → 페이지 reload" 루프가 생기므로 끈다(E2E=1).
+      hmr:
+        process.env.E2E === '1'
+          ? false
+          : {
+              host: 'p16.sumzip.com',
+              clientPort: 443,
+              protocol: 'wss',
+            },
       proxy: {
         '/api': {
           target: backendOrigin,

@@ -42,11 +42,21 @@ export function getApi(): AxiosInstance {
   });
 
   // 401 → onUnauthorized 호출(예: refresh) → 한 번 재시도
+  // 단, 인증 엔드포인트(refresh/login/logout) 자체의 401 은 회전 대상에서 제외한다.
+  // 그렇지 않으면 refresh 가 401 일 때 onUnauthorized→refresh→401… 무한 재귀가 발생한다.
+  const isAuthEndpoint = (url?: string): boolean =>
+    !!url && /\/auth\/(refresh|login|logout)\b/.test(url);
+
   instance.interceptors.response.use(
     (resp) => resp,
     async (error) => {
       const original = error.config as AxiosRequestConfig & { _retry?: boolean };
-      if (error.response?.status === 401 && !original._retry && opts.onUnauthorized) {
+      if (
+        error.response?.status === 401 &&
+        !original._retry &&
+        !isAuthEndpoint(original.url) &&
+        opts.onUnauthorized
+      ) {
         original._retry = true;
         const newToken = await opts.onUnauthorized();
         if (newToken) {
