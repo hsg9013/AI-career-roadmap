@@ -1,3 +1,7 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { env } from '../../config/env.js';
 import { logger } from '../../lib/logger.js';
 
@@ -11,6 +15,36 @@ import { logger } from '../../lib/logger.js';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
+const OAUTH_BETA = 'oauth-2025-04-20';
+
+// ── 발표용 AI 데모 토글 (재시작 불필요·런타임 플래그) ──
+//   플래그 파일이 존재하고 LLM_API_KEY 가 비어 있으면, 로컬 구독 OAuth 토큰
+//   (~/.claude/.credentials.json)을 매 호출 재독취해 임시 실연동한다(파일/.env 저장 안 함).
+//   플래그 파일이 없으면(기본) 완전 OFF — 규칙 기반 폴백으로 동작한다.
+//   토글: pnpm demo:on / pnpm demo:off (또는 플래그 파일 생성/삭제).
+const DEMO_FLAG_PATH =
+  env.DEMO_AI_FLAG_FILE ||
+  join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '.run', 'demo-ai.on');
+
+function demoActive(): boolean {
+  try {
+    return existsSync(DEMO_FLAG_PATH);
+  } catch {
+    return false;
+  }
+}
+
+// 데모 활성 + 무키 환경에서만 구독 OAuth accessToken 을 반환(자동 갱신 반영). 그 외 ''.
+function readDemoOAuthToken(): string {
+  if (env.LLM_API_KEY.length > 0 || !demoActive()) return '';
+  try {
+    const raw = readFileSync(join(homedir(), '.claude', '.credentials.json'), 'utf8');
+    const json = JSON.parse(raw) as { claudeAiOauth?: { accessToken?: string } };
+    return json.claudeAiOauth?.accessToken ?? '';
+  } catch {
+    return '';
+  }
+}
 
 export interface ClaudeCallResult {
   text: string;
@@ -21,7 +55,8 @@ export interface ClaudeCallResult {
 }
 
 export function hasClaudeCredentials(): boolean {
-  return env.LLM_PROVIDER === 'anthropic' && env.LLM_API_KEY.length > 0;
+  if (env.LLM_PROVIDER !== 'anthropic') return false;
+  return env.LLM_API_KEY.length > 0 || readDemoOAuthToken().length > 0;
 }
 
 interface AnthropicMessagesResponse {
@@ -47,7 +82,11 @@ export async function callClaude(
 ): Promise<ClaudeOutcome> {
   if (!hasClaudeCredentials()) return { ok: false, reason: 'no_credentials' };
 
-  const timeoutMs = opts.timeoutMs ?? env.LLM_TIMEOUT_MS;
+  // API 키가 있으면 x-api-key, 없으면(데모) 구독 OAuth Bearer 경로.
+  const usingApiKey = env.LLM_API_KEY.length > 0;
+  const oauthToken = usingApiKey ? '' : readDemoOAuthToken();
+  // OAuth 경로는 짧은 타임아웃이면 자주 폴백되므로 최소 30s 로 늘린다.
+  const timeoutMs = opts.timeoutMs ?? (usingApiKey ? env.LLM_TIMEOUT_MS : Math.max(env.LLM_TIMEOUT_MS, 30000));
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const startedAt = Date.now();
@@ -55,11 +94,19 @@ export async function callClaude(
   try {
     const res = await fetch(ANTHROPIC_URL, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': env.LLM_API_KEY,
-        'anthropic-version': ANTHROPIC_VERSION,
-      },
+      headers: usingApiKey
+        ? {
+            'content-type': 'application/json',
+            'x-api-key': env.LLM_API_KEY,
+            'anthropic-version': ANTHROPIC_VERSION,
+          }
+        : {
+            // 데모: 구독 OAuth 토큰 경로.
+            'content-type': 'application/json',
+            authorization: `Bearer ${oauthToken}`,
+            'anthropic-version': ANTHROPIC_VERSION,
+            'anthropic-beta': OAUTH_BETA,
+          },
       body: JSON.stringify({
         model: env.LLM_MODEL,
         max_tokens: opts.maxTokens ?? env.LLM_MAX_TOKENS,
