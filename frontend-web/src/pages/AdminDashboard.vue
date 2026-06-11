@@ -31,6 +31,35 @@ function maxOf(rows: UsageBucket[]): number {
 }
 const u = computed(() => admin.usage);
 
+// 003: 차트 가독성 — analytics_events 의 영문 이벤트 코드를 한글 지표명으로 표기.
+const EVENT_LABEL: Record<string, string> = {
+  signup: '신규 가입',
+  revisit: '재방문(로그인)',
+  first_diagnosis: '첫 갭 진단',
+  roadmap_generated: '로드맵 생성',
+  roadmap_item_completed: '로드맵 항목 완료',
+  recommendation_rejected: '추천 거절',
+  document_generated: '문서 생성',
+  portfolio_used: '포트폴리오 완성',
+  mission_submitted: '미션 제출',
+  payment_converted: '결제 완료',
+  membership_canceled: '멤버십 해지',
+  activity_recorded: '활동 기록',
+  mentor_feedback_added: '멘토 피드백',
+  // 페이지·기능 접근 이벤트(모듈 단위)
+  admin: '관리자 페이지',
+  alumni: '합격경험 공유',
+  companies: '기업 인재검색',
+  documents: '문서 페이지',
+  gap_diagnosis: '갭 진단 조회',
+  missions: '미션 페이지',
+  notifications: '알림 페이지',
+  payments: '결제 페이지',
+  roadmap: '로드맵 페이지',
+  university: '대학 대시보드',
+};
+const eventLabel = (key: string): string => EVENT_LABEL[key] ?? key;
+
 // 004 US5/US9: 파트너·라이선스 등록 콘솔
 const partnerForm = ref<{ type: 'university' | 'company' | 'mentor_org' | 'edu_platform' | 'tech_partner'; name: string; consent_scope: 'none' | 'stats' | 'individual' }>(
   { type: 'university', name: '', consent_scope: 'stats' },
@@ -63,21 +92,29 @@ async function submitLicense(): Promise<void> {
   <section class="admin">
     <header>
       <h2>관리자 대시보드</h2>
-      <p class="muted">사용 이벤트 지표 — 서비스유형 · 기간 · 사용자별 분포</p>
+      <p class="muted">
+        서비스 <b>사용자 행동(engagement) 지표</b>입니다 — 가입·진단·문서·결제 등 행동 이벤트의 분포·추이.
+        <br />※ 결제 <b>금액(매출)</b>이 아닌 <b>행동 발생 건수</b>를 집계합니다.
+      </p>
     </header>
 
     <p v-if="admin.lastError" class="error">{{ admin.lastError }}</p>
     <p v-if="admin.loading" class="muted">불러오는 중…</p>
 
     <template v-if="u">
-      <div class="total">총 이벤트 <b>{{ u.total }}</b>건</div>
+      <div class="total" title="기록된 전체 사용자 행동 이벤트의 누적 합계(전 기간)">
+        총 이벤트 <b>{{ u.total }}</b>건 <span class="info">ⓘ</span>
+      </div>
 
       <div class="charts">
         <div class="chart">
-          <h3>서비스 유형별</h3>
+          <h3 title="각 행동 이벤트(가입·진단·문서·결제 등)가 몇 번 발생했는지 종류별 횟수">
+            서비스 유형별 <span class="info">ⓘ</span>
+          </h3>
+          <p class="cdesc muted">이벤트 종류별 발생 횟수 — 어떤 기능이 많이 쓰이는지</p>
           <ul>
             <li v-for="r in u.byType" :key="r.key">
-              <span class="lbl">{{ r.key }}</span>
+              <span class="lbl" :title="r.key">{{ eventLabel(r.key) }}</span>
               <span class="track"><span class="fill type" :style="{ width: (r.count / maxOf(u.byType) * 100) + '%' }"></span></span>
               <span class="val">{{ r.count }}</span>
             </li>
@@ -85,7 +122,10 @@ async function submitLicense(): Promise<void> {
         </div>
 
         <div class="chart">
-          <h3>기간(월)별</h3>
+          <h3 title="월(YYYY-MM) 단위로 합산한 전체 이벤트 수 — 서비스 사용량 추이">
+            기간(월)별 <span class="info">ⓘ</span>
+          </h3>
+          <p class="cdesc muted">월별 전체 이벤트 총량 — 사용량 증감 추이</p>
           <ul>
             <li v-for="r in u.byPeriod" :key="r.key">
               <span class="lbl">{{ r.key }}</span>
@@ -96,10 +136,13 @@ async function submitLicense(): Promise<void> {
         </div>
 
         <div class="chart">
-          <h3>사용자별 (상위 20)</h3>
+          <h3 title="이벤트가 가장 많은 사용자 상위 20명(user_id 기준) — 핵심 활성 사용자">
+            사용자별 (상위 20) <span class="info">ⓘ</span>
+          </h3>
+          <p class="cdesc muted">가장 활발한 사용자 20명의 활동량(유저 활성도)</p>
           <ul>
             <li v-for="r in u.byUser" :key="r.key">
-              <span class="lbl">#{{ r.key }}</span>
+              <span class="lbl" title="사용자 ID">#{{ r.key }}</span>
               <span class="track"><span class="fill user" :style="{ width: (r.count / maxOf(u.byUser) * 100) + '%' }"></span></span>
               <span class="val">{{ r.count }}</span>
             </li>
@@ -176,7 +219,10 @@ async function submitLicense(): Promise<void> {
 .total b { font-size: 1.3rem; color: #2563eb; }
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 .chart { border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem; }
-.chart h3 { margin: 0 0 0.7rem; font-size: 1rem; }
+.chart h3 { margin: 0 0 0.2rem; font-size: 1rem; }
+.cdesc { margin: 0 0 0.7rem; font-size: 0.78rem; }
+.info { color: #9ca3af; font-size: 0.78rem; cursor: help; }
+.total .info { font-size: 0.8rem; }
 .chart ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.35rem; }
 .chart li { display: grid; grid-template-columns: 110px 1fr 36px; align-items: center; gap: 0.5rem; font-size: 0.82rem; }
 .lbl { color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

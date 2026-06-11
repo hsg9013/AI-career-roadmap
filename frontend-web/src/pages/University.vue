@@ -20,6 +20,14 @@ const v = computed(() => store.view as View | null);
     <header><h2>대학 취업지원 대시보드</h2>
       <p class="muted">학생 동의 범위에 따라 통계(집계) 또는 개인 단위 현황을 제공합니다.</p>
     </header>
+
+    <!-- 004(item4): 대학 SaaS 목적·요금제 안내 -->
+    <div class="saas-banner univ">
+      <span class="saas-badge">대학 취업지원 SaaS · B2G</span>
+      <p class="saas-purpose"><b>목적</b> — 재학생의 취업 역량 현황을 개인정보 없이 <b>집계</b>로 제공해 학과·학교 단위 취업지원 정책 수립을 돕습니다.</p>
+      <p class="saas-plan"><b>요금제</b> — 대학 SaaS <b>연간 라이선스</b> · 학생 동의 범위에 따라 집계/개인 단위 데이터 제공(개인정보 보호 게이트 적용).</p>
+    </div>
+
     <p v-if="store.lastError" class="error">{{ store.lastError }}</p>
 
     <div v-if="v" class="grid">
@@ -52,6 +60,9 @@ const v = computed(() => store.view as View | null);
 .univ { max-width: 820px; margin: 0 auto; padding: 1.5rem; }
 .muted { color: #6b7280; font-size: 0.9rem; }
 .error { color: #b91c1c; }
+.saas-banner { border: 1px solid #c7d2fe; background: #eef2ff; border-radius: 12px; padding: 0.9rem 1.1rem; margin: 1rem 0; }
+.saas-badge { display: inline-block; font-size: 0.72rem; font-weight: 700; color: #fff; background: #4338ca; border-radius: 999px; padding: 0.15rem 0.6rem; margin-bottom: 0.4rem; }
+.saas-purpose, .saas-plan { margin: 0.25rem 0; font-size: 0.88rem; color: #312e81; }
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; margin: 1rem 0; }
 .card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 0.8rem; display: flex; flex-direction: column; }
 .card .k { font-size: 0.8rem; color: #6b7280; }

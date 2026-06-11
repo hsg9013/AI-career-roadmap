@@ -8,7 +8,10 @@ import { usePaymentsStore, useMembershipStore } from 'frontend-shared';
 
 const store = usePaymentsStore();
 const market = useMembershipStore();
-const amount = ref(9900);
+
+// 002: 결제 금액은 사용자가 입력하지 않고 프리미엄 등급의 정가(price_month)로 고정한다.
+const premiumTier = computed(() => market.tiers.find((t) => t.code === 'premium') ?? null);
+const premiumPrice = computed(() => premiumTier.value?.price_month ?? 9900);
 
 const result = computed(() => store.result);
 
@@ -30,7 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 async function pay(forceResult?: 'success' | 'fail'): Promise<void> {
-  await store.checkout(amount.value, 'standard', forceResult).catch(() => undefined);
+  await store.checkout(premiumPrice.value, 'standard', forceResult).catch(() => undefined);
 }
 
 // 웹훅 확정(실연동) 후 상태를 다시 불러온다.
@@ -58,10 +61,11 @@ async function refresh(): Promise<void> {
     <p class="sandbox-note">🧪 테스트 모드 — 실제 거래가 아닙니다. (결제 성공/실패·등급 변경 시연용)</p>
 
     <div class="plan">
-      <h3>스탠다드</h3>
-      <p class="price">₩<input v-model.number="amount" type="number" /> / 월</p>
+      <h3>프리미엄 멤버십 <span class="cycle">정기 구독</span></h3>
+      <p class="price">₩{{ premiumPrice.toLocaleString() }} <span class="per">/ 월</span></p>
+      <p class="muted plan-note">매월 자동 결제되는 정기 구독입니다. 단건만 필요하면 아래 '실무 단건 서비스'를 이용하세요.</p>
       <div class="pay-actions">
-        <button :disabled="store.loading" @click="pay()">{{ store.loading ? '결제 중…' : '결제하기 (테스트)' }}</button>
+        <button :disabled="store.loading" @click="pay()">{{ store.loading ? '결제 중…' : '구독 결제 (테스트)' }}</button>
         <button class="ghost" :disabled="store.loading" @click="pay('success')">가상 성공</button>
         <button class="ghost danger" :disabled="store.loading" @click="pay('fail')">가상 실패</button>
       </div>
@@ -106,8 +110,12 @@ async function refresh(): Promise<void> {
 .error { color: #b91c1c; }
 .ok { color: #166534; margin: 0.3rem 0; }
 .sandbox-note { margin: 1rem 0 0; padding: 0.5rem 0.8rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; color: #92400e; font-size: 0.85rem; }
-.plan { border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.2rem; margin-top: 1rem; }
-.price input { width: 90px; border: 1px solid #d1d5db; border-radius: 6px; padding: 0.2rem; }
+.plan { border: 1px solid #c7d2fe; background: #eef2ff; border-radius: 12px; padding: 1.2rem; margin-top: 1rem; }
+.plan h3 { margin: 0 0 0.3rem; display: flex; align-items: center; gap: 0.5rem; }
+.cycle { font-size: 0.72rem; font-weight: 700; color: #4338ca; background: #e0e7ff; border-radius: 999px; padding: 0.12rem 0.5rem; }
+.price { font-size: 1.4rem; font-weight: 700; color: #1e3a8a; margin: 0.2rem 0; }
+.price .per { font-size: 0.9rem; font-weight: 400; color: #6b7280; }
+.plan-note { margin: 0 0 0.3rem; }
 .plan button { background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 0.6rem 1.2rem; cursor: pointer; margin-top: 0.5rem; }
 .pay-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
 .pay-actions .ghost { background: #fff; color: #2563eb; border: 1px solid #2563eb; }
