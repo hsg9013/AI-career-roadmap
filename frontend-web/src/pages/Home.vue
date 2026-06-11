@@ -7,7 +7,7 @@ const auth = useAuthStore();
 // 역할별 홈 경로 + 학생 전용 메뉴 분기.
 const ROLE_HOME: Record<string, string> = {
   student: '/dashboard', mentor: '/missions', enterprise: '/company',
-  university: '/university', admin: '/admin',
+  university: '/university', admin: '/admin', edu_platform: '/partner-portal',
 };
 const home = computed(() => ROLE_HOME[auth.user?.role ?? ''] ?? '/dashboard');
 const isStudent = computed(() => auth.user?.role === 'student');

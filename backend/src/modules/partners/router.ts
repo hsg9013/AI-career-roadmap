@@ -50,11 +50,11 @@ async function trackHandler(req: Request, res: Response, next: NextFunction): Pr
 
 // ── 005 US3(H3): 파트너 자체 회원가입 ──
 // 004의 '운영자 수동 등록'과 조화: 자체 가입은 역할 계정을 발급하되 partner.status='pending'(운영자 활성화 게이트).
-const ROLE_BY_PARTNER: Record<string, 'university' | 'enterprise' | 'mentor' | null> = {
+const ROLE_BY_PARTNER: Record<string, 'university' | 'enterprise' | 'mentor' | 'edu_platform' | null> = {
   university: 'university',
   company: 'enterprise',
   mentor_org: 'mentor',
-  edu_platform: null, // 교육·활동 플랫폼: 제휴 배너 제공자 — 로그인 역할 없음(파트너 레코드만)
+  edu_platform: 'edu_platform', // 교육·활동 플랫폼: 제휴사 포털 로그인 발급(콘텐츠·배너·성과 관리)
 };
 const signupBody = z.object({
   partner_type: z.enum(['university', 'company', 'mentor_org', 'edu_platform']),
@@ -217,5 +217,146 @@ async function createLicenseHandler(req: Request, res: Response, next: NextFunct
 export const adminLicensesRouter: Router = Router();
 adminLicensesRouter.use(requireAuth, requireRole('admin'));
 adminLicensesRouter.post('/', validate({ body: licenseInput }), createLicenseHandler);
+
+// ── 교육·활동 플랫폼 제휴사 포털(role=edu_platform) ──
+// 콘텐츠(자격증/공모전/대외활동)를 /feeds 로 발행 + 제휴 배너 관리 + 노출/클릭 성과.
+async function resolvePartnerId(userId: number): Promise<number> {
+  const [rows] = await getPool().query(
+    'SELECT partner_id FROM partner_account WHERE user_id = ? LIMIT 1',
+    [userId],
+  );
+  const pid = (rows as Array<{ partner_id: number }>)[0]?.partner_id;
+  if (!pid) throw new HttpError(403, 'NO_PARTNER', '연결된 파트너가 없습니다.');
+  return pid;
+}
+const partnerUserId = (req: Request): number => {
+  if (!req.auth) throw new HttpError(401, 'UNAUTHENTICATED', 'Auth required');
+  return req.auth.sub;
+};
+
+async function portalOverviewHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const pid = await resolvePartnerId(partnerUserId(req));
+    const pool = getPool();
+    const [[p]] = (await pool.query('SELECT id, type, name, status FROM partner WHERE id = ?', [pid])) as unknown as [Array<Record<string, unknown>>];
+    const src = `partner-${pid}`;
+    const [[feed]] = (await pool.query("SELECT COUNT(*) AS c FROM external_feed_item WHERE source = ?", [src])) as unknown as [Array<{ c: number }>];
+    const [[banner]] = (await pool.query('SELECT COUNT(*) AS c, COALESCE(SUM(active),0) AS active FROM partner_banner WHERE partner_id = ?', [pid])) as unknown as [Array<{ c: number; active: number }>];
+    const [conv] = (await pool.query(
+      `SELECT bc.event, COUNT(*) AS c FROM banner_conversion bc
+       JOIN partner_banner pb ON pb.id = bc.partner_banner_id
+       WHERE pb.partner_id = ? GROUP BY bc.event`,
+      [pid],
+    )) as unknown as [Array<{ event: string; c: number }>];
+    const clicks = Number(conv.find((r) => r.event === 'click')?.c ?? 0);
+    const conversions = Number(conv.find((r) => r.event === 'convert')?.c ?? 0);
+    res.status(200).json({
+      partner: p,
+      feed_count: Number(feed?.c ?? 0),
+      banner_count: Number(banner?.c ?? 0),
+      banner_active: Number(banner?.active ?? 0),
+      clicks,
+      conversions,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function portalListFeedHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const pid = await resolvePartnerId(partnerUserId(req));
+    const [rows] = await getPool().query(
+      `SELECT id, kind, title, freshness, DATE_FORMAT(collected_at, '%Y-%m-%dT%H:%i:%sZ') AS collected_at
+       FROM external_feed_item WHERE source = ? ORDER BY collected_at DESC, id DESC LIMIT 100`,
+      [`partner-${pid}`],
+    );
+    res.status(200).json(rows);
+  } catch (err) {
+    next(err);
+  }
+}
+
+const feedItemBody = z.object({
+  kind: z.enum(['certification', 'contest']),
+  title: z.string().min(1).max(300),
+});
+async function portalCreateFeedHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const pid = await resolvePartnerId(partnerUserId(req));
+    const b = req.body as z.infer<typeof feedItemBody>;
+    const src = `partner-${pid}`;
+    const extId = `p${pid}-${Date.now()}`;
+    await getPool().query(
+      `INSERT INTO external_feed_item (kind, source, external_id, title, freshness, payload)
+       VALUES (?, ?, ?, ?, 'fresh', '{}')`,
+      [b.kind, src, extId, b.title],
+    );
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function portalListBannersHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const pid = await resolvePartnerId(partnerUserId(req));
+    const [rows] = await getPool().query(
+      'SELECT id, title, landing_url, discount_text, active FROM partner_banner WHERE partner_id = ? ORDER BY id DESC',
+      [pid],
+    );
+    res.status(200).json(rows);
+  } catch (err) {
+    next(err);
+  }
+}
+
+const bannerBody = z.object({
+  title: z.string().min(1).max(200),
+  landing_url: z.string().url().max(400),
+  discount_text: z.string().max(120).optional(),
+});
+async function portalCreateBannerHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const pid = await resolvePartnerId(partnerUserId(req));
+    const b = req.body as z.infer<typeof bannerBody>;
+    const [ins] = await getPool().query(
+      `INSERT INTO partner_banner (partner_id, title, landing_url, discount_text, active) VALUES (?, ?, ?, ?, 1)`,
+      [pid, b.title, b.landing_url, b.discount_text ?? null],
+    );
+    res.status(201).json({ id: (ins as { insertId: number }).insertId });
+  } catch (err) {
+    next(err);
+  }
+}
+
+const bannerToggleParams = z.object({ id: z.coerce.number().int().positive() });
+const bannerToggleBody = z.object({ active: z.boolean() });
+async function portalToggleBannerHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const pid = await resolvePartnerId(partnerUserId(req));
+    const { id } = req.params as unknown as z.infer<typeof bannerToggleParams>;
+    const { active } = req.body as z.infer<typeof bannerToggleBody>;
+    const [r] = await getPool().query(
+      'UPDATE partner_banner SET active = ? WHERE id = ? AND partner_id = ?',
+      [active ? 1 : 0, id, pid],
+    );
+    if ((r as { affectedRows: number }).affectedRows === 0) {
+      throw new HttpError(404, 'BANNER_NOT_FOUND', '배너를 찾을 수 없습니다.');
+    }
+    res.status(200).json({ id, active });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export const partnerPortalRouter: Router = Router();
+partnerPortalRouter.use(requireAuth, requireRole('edu_platform'));
+partnerPortalRouter.get('/overview', portalOverviewHandler);
+partnerPortalRouter.get('/feed-items', portalListFeedHandler);
+partnerPortalRouter.post('/feed-items', validate({ body: feedItemBody }), portalCreateFeedHandler);
+partnerPortalRouter.get('/banners', portalListBannersHandler);
+partnerPortalRouter.post('/banners', validate({ body: bannerBody }), portalCreateBannerHandler);
+partnerPortalRouter.patch('/banners/:id', validate({ params: bannerToggleParams, body: bannerToggleBody }), portalToggleBannerHandler);
 
 export default partnersRouter;

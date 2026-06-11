@@ -28,7 +28,7 @@ const form = reactive({
 interface LoginResp {
   access_token: string;
   expires_in: number;
-  role: 'student' | 'mentor' | 'university' | 'enterprise' | 'admin';
+  role: 'student' | 'mentor' | 'university' | 'enterprise' | 'admin' | 'edu_platform';
 }
 
 async function performLogin(): Promise<void> {
@@ -49,6 +49,7 @@ async function performLogin(): Promise<void> {
     enterprise: '/company',
     university: '/university',
     admin: '/admin',
+    edu_platform: '/partner-portal',
   };
   const target = (route.query.redirect as string | undefined) ?? ROLE_HOME[data.role] ?? '/dashboard';
   await router.push(target);
@@ -178,6 +179,7 @@ async function onSubmit(): Promise<void> {
       <li>학생: <code>demo-student-backend / frontend / quant @p16.local</code></li>
       <li>멘토: <code>demo-mentor-backend / data @p16.local</code></li>
       <li>대학: <code>demo-university@p16.local</code> · 기업: <code>demo-enterprise@p16.local</code></li>
+      <li>교육·활동 플랫폼: <code>demo-partner-edu@p16.local</code> (제휴사 포털)</li>
       <li>관리자: <code>admin@p16.local</code> (비번 <code>admin1234!</code>)</li>
     </ul>
   </section>

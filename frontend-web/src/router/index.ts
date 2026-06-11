@@ -119,6 +119,13 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../pages/UniversityPlan.vue'),
     meta: { requiresAuth: true, roles: ['university'] },
   },
+  {
+    // 교육·활동 플랫폼 제휴사 포털(콘텐츠·배너·성과)
+    path: '/partner-portal',
+    name: 'partner-portal',
+    component: () => import('../pages/PartnerPortal.vue'),
+    meta: { requiresAuth: true, roles: ['edu_platform'] },
+  },
 ];
 
 export const router = createRouter({

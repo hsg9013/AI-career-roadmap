@@ -30,7 +30,7 @@ import membershipRouter from './modules/membership/router.js';
 import profileRouter from './modules/profile/router.js';
 import adsRouter from './modules/ads/router.js';
 import paidServicesRouter from './modules/paid-services/router.js';
-import { partnersRouter, adminPartnersRouter, adminLicensesRouter } from './modules/partners/router.js';
+import { partnersRouter, adminPartnersRouter, adminLicensesRouter, partnerPortalRouter } from './modules/partners/router.js';
 
 // T035: 모든 미들웨어·라우터 와이어링
 
@@ -100,6 +100,7 @@ export function createApp(): Express {
   v1.use('/ads', adsRouter);
   v1.use('/paid-services', paidServicesRouter);
   v1.use('/partners', partnersRouter);
+  v1.use('/partner-portal', partnerPortalRouter);
   v1.use('/admin/partners', adminPartnersRouter);
   v1.use('/admin/licenses', adminLicensesRouter);
   v1.use('/students', studentsRouter);

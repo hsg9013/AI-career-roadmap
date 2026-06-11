@@ -1,4 +1,5 @@
 import '../src/config/dotenv.js';
+import bcrypt from 'bcrypt';
 import { getPool, closePool } from '../src/db/pool.js';
 
 // 데모 시나리오 완비 — 가상 데이터 시딩(멱등). seed:005 이후 실행 권장.
@@ -200,11 +201,55 @@ async function main(): Promise<void> {
     authoredMsg = `IT/backend 미션 ${(upd as { affectedRows: number }).affectedRows}개 → 데모 멘토 출제로 지정`;
   }
 
+  // ── 교육·활동 플랫폼 데모 제휴사(로그인·승인 완료) + 콘텐츠/배너/성과 ──
+  const eduEmail = 'demo-partner-edu@p16.local';
+  const eduHash = await bcrypt.hash('demo1234!', 10);
+  await pool.query(
+    `INSERT INTO users (email, password_hash, role, email_verified, is_active)
+     VALUES (?, ?, 'edu_platform', 1, 1)
+     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = 'edu_platform', is_active = 1`,
+    [eduEmail, eduHash],
+  );
+  const eduUserId = (await scalarId('SELECT id FROM users WHERE email = ? LIMIT 1', [eduEmail]))!;
+  let eduPartnerId = await scalarId(
+    `SELECT p.id FROM partner p JOIN partner_account pa ON pa.partner_id = p.id WHERE pa.user_id = ? LIMIT 1`,
+    [eduUserId],
+  );
+  if (!eduPartnerId) {
+    const [pins] = await pool.query(
+      "INSERT INTO partner (type, name, consent_scope, status) VALUES ('edu_platform', '데모 교육·활동 플랫폼', 'stats', 'active')",
+    );
+    eduPartnerId = (pins as { insertId: number }).insertId;
+    await pool.query('INSERT INTO partner_account (partner_id, user_id) VALUES (?, ?)', [eduPartnerId, eduUserId]);
+  }
+  const eduSrc = `partner-${eduPartnerId}`;
+  const eduFeedCnt = await scalarId('SELECT COUNT(*) AS id FROM external_feed_item WHERE source = ?', [eduSrc]);
+  if (!eduFeedCnt) {
+    await pool.query(
+      `INSERT INTO external_feed_item (kind, source, external_id, title, freshness, payload) VALUES
+        ('certification', ?, ?, '제휴 클라우드 자격 과정(데모)', 'fresh', '{}'),
+        ('contest', ?, ?, '제휴 대외활동: 데이터 챌린지(데모)', 'fresh', '{}')`,
+      [eduSrc, `${eduSrc}-seed1`, eduSrc, `${eduSrc}-seed2`],
+    );
+  }
+  let eduBannerId = await scalarId('SELECT id FROM partner_banner WHERE partner_id = ? LIMIT 1', [eduPartnerId]);
+  if (!eduBannerId) {
+    const [bins] = await pool.query(
+      "INSERT INTO partner_banner (partner_id, title, landing_url, discount_text, active) VALUES (?, '데모 교육 플랫폼: 토익 단기 과정', 'https://edu.demo.local/toeic', '30% 할인', 1)",
+      [eduPartnerId],
+    );
+    eduBannerId = (bins as { insertId: number }).insertId;
+    // 성과 샘플: 클릭 8 + 전환 2 (banner_conversion.event = click|convert)
+    for (let i = 0; i < 8; i++) await pool.query("INSERT INTO banner_conversion (partner_banner_id, event) VALUES (?, 'click')", [eduBannerId]);
+    for (let i = 0; i < 2; i++) await pool.query("INSERT INTO banner_conversion (partner_banner_id, event) VALUES (?, 'convert')", [eduBannerId]);
+  }
+
   console.log('\n=== 데모 시나리오 시딩 완료 ===');
   console.log(`1) 대학: university_id=${universityId}, staff 연결 ${uniUserId ? 'OK(individual)' : '없음(데모대학 계정 부재)'}`);
   console.log(`2) 가상 인재: 신규 학생 ${createdStudents}명 / 진단 ${createdDiag}건 (조합 ${combos.length} × ${PER_COMBO}명)`);
   console.log(`3) 멘토↔학생 매핑: ${mappingMsg}`);
   console.log(`4) 멘토 출제 미션: ${authoredMsg}`);
+  console.log(`5) 교육·활동 플랫폼 제휴사: ${eduEmail} (partner ${eduPartnerId}, 콘텐츠/배너/성과 시드)`);
   await closePool();
   process.exit(0);
 }

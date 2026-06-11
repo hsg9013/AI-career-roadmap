@@ -19,7 +19,7 @@ export const requireAuthGuard: NavigationGuard = (to) => {
   if (roles && roles.length > 0 && !(auth.user && roles.includes(auth.user.role))) {
     const ROLE_HOME: Record<string, string> = {
       student: '/dashboard', mentor: '/missions', enterprise: '/company',
-      university: '/university', admin: '/admin',
+      university: '/university', admin: '/admin', edu_platform: '/partner-portal',
     };
     const home = auth.user ? ROLE_HOME[auth.user.role] : undefined;
     // 자기 홈 자체가 막히는 경우(이상 상태)만 forbidden — 그 외엔 홈으로 리다이렉트(루프 방지).

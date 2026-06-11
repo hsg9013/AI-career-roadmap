@@ -17,6 +17,7 @@ async function onLogout(): Promise<void> {
 const links = computed(() => {
   const role = auth.user?.role;
   if (role === 'admin') return [{ to: '/admin', label: '관리자 대시보드' }];
+  if (role === 'edu_platform') return [{ to: '/partner-portal', label: '제휴사 포털' }];
   if (role === 'university') {
     // 대학(B2G/B2B): 통계 대시보드 + 기관 라이선스 플랜 관리
     return [

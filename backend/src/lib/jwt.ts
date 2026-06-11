@@ -4,7 +4,7 @@ import { env } from '../config/env.js';
 
 // T021: 액세스/refresh JWT + scope 클레임 빌더 (R-5/R-7)
 
-export type Role = 'student' | 'mentor' | 'university' | 'enterprise' | 'admin';
+export type Role = 'student' | 'mentor' | 'university' | 'enterprise' | 'admin' | 'edu_platform';
 
 export type Scope =
   | 'university:aggregate'

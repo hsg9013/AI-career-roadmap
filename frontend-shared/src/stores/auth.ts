@@ -5,7 +5,7 @@ import { getApi } from '../api/client.js';
 // T037: 인증 상태 Pinia 스토어
 // access token은 메모리(보안), refresh는 백엔드 HttpOnly 쿠키 또는 별도 secure storage.
 
-export type Role = 'student' | 'mentor' | 'university' | 'enterprise' | 'admin';
+export type Role = 'student' | 'mentor' | 'university' | 'enterprise' | 'admin' | 'edu_platform';
 
 // 진행 중 refresh 약속(single-flight) — defineStore 팩토리 밖(모듈 스코프)에 두어
 // 스토어 인스턴스가 둘 이상이어도(부팅 시 useAuthStore(pinia) vs 인터셉터의 useAuthStore())

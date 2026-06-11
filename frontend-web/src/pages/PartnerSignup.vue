@@ -8,7 +8,7 @@ const PARTNER_TYPES = [
   { value: 'university', label: '대학 취업지원센터', needsLogin: true },
   { value: 'company', label: '기업 (인재 검색)', needsLogin: true },
   { value: 'mentor_org', label: '현직자/멘토', needsLogin: true },
-  { value: 'edu_platform', label: '교육·활동 플랫폼 (제휴)', needsLogin: false },
+  { value: 'edu_platform', label: '교육·활동 플랫폼 (제휴사 포털)', needsLogin: true },
 ];
 
 const partnerType = ref<'university' | 'company' | 'mentor_org' | 'edu_platform'>('university');
