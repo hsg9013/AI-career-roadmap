@@ -37,6 +37,13 @@ const actForm = ref<{ category: ActivityCategory; title: string; started_at: str
   title: '',
   started_at: '',
 });
+const selectedSkills = ref<string[]>([]); // 이 활동이 보여주는 역량(태그 → 진단 점수 반영)
+
+function toggleSkill(s: string): void {
+  const i = selectedSkills.value.indexOf(s);
+  if (i >= 0) selectedSkills.value.splice(i, 1);
+  else selectedSkills.value.push(s);
+}
 
 const steps = computed(() => [
   { label: '프로필', done: student.hasProfile },
@@ -54,6 +61,8 @@ onMounted(async () => {
   await student.fetchTargetJobs();
   if (student.targetJobs.length > 0) targetSaved.value = true;
   await activities.fetchList();
+  // 목표 직무가 이미 있으면 역량 칩 후보를 미리 로드(재방문 케이스).
+  if (student.targetJobs.length > 0) await activities.fetchSuggestedSkills();
 });
 
 async function onProfileSubmit(value: {
@@ -73,13 +82,20 @@ async function onTargetSubmit(jobs: Array<{
 }>): Promise<void> {
   await student.replaceTargetJobs(jobs);
   targetSaved.value = true;
+  // 목표 직무 확정 후 역량 칩 후보(요구역량 키워드) 로드 — 활동 태깅에 사용.
+  await activities.fetchSuggestedSkills();
 }
 
 async function addActivity(): Promise<void> {
   if (!actForm.value.title || !actForm.value.started_at) return;
   await activities
-    .create({ category: actForm.value.category, title: actForm.value.title, started_at: actForm.value.started_at })
-    .then(() => { actForm.value.title = ''; actForm.value.started_at = ''; })
+    .create({
+      category: actForm.value.category,
+      title: actForm.value.title,
+      started_at: actForm.value.started_at,
+      manual_tags: selectedSkills.value.length ? [...selectedSkills.value] : undefined,
+    })
+    .then(() => { actForm.value.title = ''; actForm.value.started_at = ''; selectedSkills.value = []; })
     .catch(() => undefined);
 }
 
@@ -136,6 +152,24 @@ async function finish(): Promise<void> {
       <input v-model="actForm.started_at" type="date" />
       <button class="ghost" :disabled="!actForm.title || !actForm.started_at || activities.loading" @click="addActivity">추가</button>
     </div>
+
+    <div v-if="activities.suggestedSkills.length" class="skills">
+      <span class="skills-label">이 활동이 보여주는 역량 <small>(선택 — 진단 점수에 반영됩니다)</small></span>
+      <div class="chips">
+        <button
+          v-for="s in activities.suggestedSkills"
+          :key="s"
+          type="button"
+          class="chip"
+          :class="{ on: selectedSkills.includes(s) }"
+          @click="toggleSkill(s)"
+        >{{ s }}</button>
+      </div>
+    </div>
+    <p v-else-if="targetSaved" class="muted skills-hint">
+      목표 직무를 저장하면 그 직무의 요구 역량이 칩으로 표시됩니다. 활동에 해당 역량을 선택하면 진단 점수에 반영됩니다.
+    </p>
+
     <ul class="act-list">
       <li v-for="a in activities.items" :key="a.id">
         <span class="cat">{{ CATEGORIES.find((c) => c.value === a.category)?.label ?? a.category }}</span>
@@ -180,6 +214,13 @@ h3 { margin-top: 2rem; }
 .date { margin-left: auto; }
 .del { background: none; border: 0; color: #b91c1c; cursor: pointer; }
 .empty { padding: 0.6rem 0; }
+.skills { margin-top: 0.7rem; }
+.skills-label { font-size: 0.85rem; color: #374151; }
+.skills-label small { color: #9ca3af; }
+.skills-hint { margin-top: 0.6rem; font-size: 0.82rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+.chip { border: 1px solid #d1d5db; background: #fff; color: #374151; border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.82rem; cursor: pointer; }
+.chip.on { background: #2563eb; color: #fff; border-color: #2563eb; }
 .finish { margin-top: 0.6rem; background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 0.6rem 1.2rem; cursor: pointer; font-size: 0.95rem; }
 .finish:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
