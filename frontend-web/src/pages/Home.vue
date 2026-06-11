@@ -1,7 +1,16 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { i18n, useAuthStore } from 'frontend-shared';
 const { t } = i18n;
 const auth = useAuthStore();
+
+// 역할별 홈 경로 + 학생 전용 메뉴 분기.
+const ROLE_HOME: Record<string, string> = {
+  student: '/dashboard', mentor: '/missions', enterprise: '/company',
+  university: '/university', admin: '/admin',
+};
+const home = computed(() => ROLE_HOME[auth.user?.role ?? ''] ?? '/dashboard');
+const isStudent = computed(() => auth.user?.role === 'student');
 </script>
 
 <template>
@@ -10,8 +19,9 @@ const auth = useAuthStore();
     <p class="tag">{{ t('app.tagline') }}</p>
     <div class="cta">
       <template v-if="auth.isAuthenticated">
-        <router-link class="btn primary" to="/dashboard">대시보드</router-link>
-        <router-link class="btn ghost" to="/onboarding">목표 직무 변경</router-link>
+        <router-link class="btn primary" :to="home">대시보드</router-link>
+        <!-- 목표 직무 변경은 학생 계정에만 노출 -->
+        <router-link v-if="isStudent" class="btn ghost" to="/onboarding">목표 직무 변경</router-link>
       </template>
       <template v-else>
         <router-link class="btn primary" to="/login">로그인 / 가입</router-link>

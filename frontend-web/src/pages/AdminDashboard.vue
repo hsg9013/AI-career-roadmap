@@ -59,33 +59,7 @@ const EVENT_LABEL: Record<string, string> = {
   university: '대학 대시보드',
 };
 const eventLabel = (key: string): string => EVENT_LABEL[key] ?? key;
-
-// 004 US5/US9: 파트너·라이선스 등록 콘솔
-const partnerForm = ref<{ type: 'university' | 'company' | 'mentor_org' | 'edu_platform' | 'tech_partner'; name: string; consent_scope: 'none' | 'stats' | 'individual' }>(
-  { type: 'university', name: '', consent_scope: 'stats' },
-);
-const licenseForm = ref<{ partner_id: number | null; type: 'university_saas' | 'company_recruit'; fee_year: number | null }>(
-  { partner_id: null, type: 'university_saas', fee_year: null },
-);
-const partnerMsg = ref('');
-const licenseMsg = ref('');
-
-async function submitPartner(): Promise<void> {
-  if (!partnerForm.value.name) return;
-  await admin.createPartner(partnerForm.value).then(() => {
-    partnerMsg.value = `파트너 등록됨 (#${admin.lastPartnerId})`;
-    licenseForm.value.partner_id = admin.lastPartnerId;
-    partnerForm.value.name = '';
-  }).catch(() => { partnerMsg.value = '등록 실패'; });
-}
-async function submitLicense(): Promise<void> {
-  if (!licenseForm.value.partner_id) return;
-  await admin.createLicense({
-    partner_id: licenseForm.value.partner_id,
-    type: licenseForm.value.type,
-    fee_year: licenseForm.value.fee_year ?? undefined,
-  }).then(() => { licenseMsg.value = '라이선스 등록됨'; }).catch(() => { licenseMsg.value = '등록 실패'; });
-}
+// 파트너·라이선스 수동 등록 콘솔은 자체가입+승인 흐름으로 대체되어 제거(중복).
 </script>
 
 <template>
@@ -172,41 +146,6 @@ async function submitLicense(): Promise<void> {
         </tbody>
       </table>
       <p v-else class="muted">승인 대기 중인 파트너가 없습니다.</p>
-    </div>
-
-    <div class="console">
-      <h3>파트너·라이선스 콘솔 <span class="muted">(운영자 수동 등록)</span></h3>
-      <div class="forms">
-        <div class="card">
-          <h4>파트너 등록</h4>
-          <select v-model="partnerForm.type">
-            <option value="university">대학교</option>
-            <option value="company">기업</option>
-            <option value="mentor_org">멘토 조직</option>
-            <option value="edu_platform">교육/활동 플랫폼</option>
-            <option value="tech_partner">기술 협력사</option>
-          </select>
-          <input v-model="partnerForm.name" placeholder="파트너 이름" />
-          <select v-model="partnerForm.consent_scope">
-            <option value="none">공유 안 함</option>
-            <option value="stats">통계만</option>
-            <option value="individual">개인 단위</option>
-          </select>
-          <button @click="submitPartner">등록</button>
-          <p v-if="partnerMsg" class="ok">{{ partnerMsg }}</p>
-        </div>
-        <div class="card">
-          <h4>라이선스 등록</h4>
-          <input v-model.number="licenseForm.partner_id" type="number" placeholder="파트너 ID" />
-          <select v-model="licenseForm.type">
-            <option value="university_saas">대학 SaaS(연간)</option>
-            <option value="company_recruit">기업 채용 수수료</option>
-          </select>
-          <input v-model.number="licenseForm.fee_year" type="number" placeholder="연 라이선스 금액(선택)" />
-          <button @click="submitLicense">등록</button>
-          <p v-if="licenseMsg" class="ok">{{ licenseMsg }}</p>
-        </div>
-      </div>
     </div>
   </section>
 </template>
