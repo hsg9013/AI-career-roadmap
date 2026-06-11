@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; margin: 0; color: #111; padding: 22px 26px; width: 1500px; }
+  h1 { font-size: 23px; margin: 0 0 4px; }
+  .sub { font-size: 12.5px; color:#555; margin: 0 0 14px; line-height: 1.6; }
+  .sub b { color:#1f6feb; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+  th, td { border: 1px solid #d0d7de; padding: 8px 10px; vertical-align: top; text-align: left; }
+  th { background: #1f6feb; color:#fff; font-weight: 600; }
+  td.num { text-align: center; font-weight: 700; color:#1f6feb; }
+  td.who { text-align: center; font-weight: 700; white-space: nowrap; background:#eaf2ff; }
+  td.area { font-weight: 600; }
+  td.ev { font-size: 11px; color:#444; }
+  tbody tr:nth-child(even) td:not(.who) { background: #fafbfc; }
+  .foot { margin-top: 14px; font-size: 11.5px; color:#444; }
+  .foot .blocks { color:#0e7490; }
+</style>
+</head>
+<body>
+  <h1>개인 기여도 — DDBM 캔버스 · 시스템 의도 · 분석/설계 (황성권)</h1>
+  <p class="sub">
+    담당: <b>DDBM 캔버스 작성 · 시스템 의도 정제 · 전체 분석/설계 방향 설정</b><br>
+    근거: DDBM ISP 캔버스 「AI 진로 로드맵 ISP」의 분석·설계 블록 (산출물 docs/ISP-AI진로로드맵.md)
+  </p>
+  <table>
+    <colgroup><col style="width:4%"><col style="width:17%"><col style="width:8%"><col style="width:48%"><col style="width:23%"></colgroup>
+    <thead><tr><th>#</th><th>분석·설계 영역</th><th>주담당</th><th>기여내용 (무엇을 / 어떻게)</th><th>근거 (DDBM 캔버스 블록 · ISP)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="num">1</td><td class="area">정보화 비전·목표 정의</td><td class="who">황성권</td>
+        <td>서비스 방향을 "대학생이 진로를 <b>데이터에 근거해 설계</b>하고 취업 준비를 <b>자동 관리</b>받는 플랫폼"으로 정리. 4대 핵심 목표(① 역량 갭 진단 ② 선배 합격 경로 기반 로드맵 ③ 실무 미션 + AI·현직자 피드백 ④ 활동 기록의 문서 자동화) 정의</td>
+        <td class="ev">「정보화 비전·목표」 블록 · ISP §1</td>
+      </tr>
+      <tr>
+        <td class="num">2</td><td class="area">환경·개선 동인 정리</td><td class="who">황성권</td>
+        <td>"무엇을·언제·어떤 순서로 준비할지 알기 어렵다 / 포트폴리오·자소서 반복 작성 / 실무자 피드백 부재"라는 핵심 동인을 정리하고, <b>대학·기업·현직자·교육활동 플랫폼이 연결되는 파트너십 구조</b>를 설계</td>
+        <td class="ev">「환경·개선 동인」 블록 · ISP §2</td>
+      </tr>
+      <tr>
+        <td class="num">3</td><td class="area">AS-IS 현황·한계 분석</td><td class="who">황성권</td>
+        <td>현행 방식(채용 포털·후기 산재, 막연한 자기 역량 판단, 워드·한글 수작업 포트폴리오, 개인 메모·캘린더 진척 관리)의 한계를 정리 → "단순 채용 공고 사이트가 아니라 <b>취업 준비 통합 관리 시스템</b>"이라는 방향 도출</td>
+        <td class="ev">「AS-IS 기능 현황」 + 「AS-IS 문제점·한계」 블록 · ISP §3·§4</td>
+      </tr>
+      <tr>
+        <td class="num">4</td><td class="area">갭 분석·개선 기회 도출</td><td class="who">황성권</td>
+        <td>잔여 문제(활동·스펙 입력 단계 부재, 직무 맞춤 미션 부족, 로드맵 추천 근거 설명 부족, 파트너십 생태계 미구현, 수익 구조 미구체화)를 정리 → <b>실제 구현(활동·스펙 입력, 로드맵 근거 설명, 미션, 멤버십, 광고·제휴)으로 연결</b></td>
+        <td class="ev">「갭 분석·개선 기회」 블록 · ISP §6</td>
+      </tr>
+      <tr>
+        <td class="num">5</td><td class="area">위험·제약·거버넌스 정리</td><td class="who">황성권</td>
+        <td>운영 제약 정의: 개인정보보호법·정보통신망법 준수, <b>선배 데이터 k-익명성 최소 5명</b>, 광고·제휴 표기, 결제 <b>테스트모드 표시</b>, 토큰 저장 시 <b>민감정보 저장 금지</b></td>
+        <td class="ev">「위험·제약·거버넌스」 블록 · ISP §13</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="foot">
+    근거 종합 — DDBM ISP 캔버스 「AI 진로 로드맵 ISP」의 분석·설계 블록:
+    <span class="blocks">「정보화 비전·목표」(§1) · 「환경·개선 동인」(§2) · 「AS-IS 기능 현황」(§3) · 「AS-IS 문제점·한계」(§4) · 「갭 분석·개선 기회」(§6) · 「위험·제약·거버넌스」(§13)</span><br>
+    한 줄 요약: 서비스의 당위(why)·해결 문제(what)·사용자·기능·제약을 캔버스에 정리하고 시스템 의도로 정제한 분석/설계 담당.
+  </p>
+</body>
+</html>
