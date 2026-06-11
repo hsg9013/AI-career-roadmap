@@ -242,6 +242,7 @@ export const useFeedsStore = defineStore('feeds', () => {
 
   async function fetchItems(filter: { kind?: FeedKind } = {}): Promise<void> {
     loading.value = true;
+    kind.value = filter.kind ?? '';
     try {
       const params = filter.kind ? `?kind=${filter.kind}` : '';
       const { data } = await getApi().get<FeedItem[]>(`/feeds/items${params}`);
@@ -251,5 +252,18 @@ export const useFeedsStore = defineStore('feeds', () => {
     }
   }
 
-  return { items, loading, kind, fetchItems };
+  // 005 고도화: '지금 새로고침' — 즉시 재수집 후 현재 필터로 재조회.
+  async function refresh(): Promise<void> {
+    loading.value = true;
+    try {
+      await getApi().post('/feeds/refresh');
+      const params = kind.value ? `?kind=${kind.value}` : '';
+      const { data } = await getApi().get<FeedItem[]>(`/feeds/items${params}`);
+      items.value = data;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  return { items, loading, kind, fetchItems, refresh };
 });

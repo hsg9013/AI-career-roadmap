@@ -6,6 +6,21 @@ import { useFeedsStore, type FeedKind } from 'frontend-shared';
 
 const store = useFeedsStore();
 const active = ref<FeedKind | ''>('');
+const refreshing = ref(false);
+const refreshedMsg = ref('');
+
+async function refreshNow(): Promise<void> {
+  refreshing.value = true;
+  refreshedMsg.value = '';
+  try {
+    await store.refresh();
+    refreshedMsg.value = '최신 정보로 새로고침했습니다.';
+  } catch {
+    refreshedMsg.value = '새로고침에 실패했습니다. 잠시 후 다시 시도하세요.';
+  } finally {
+    refreshing.value = false;
+  }
+}
 
 const TABS: { value: FeedKind | ''; label: string }[] = [
   { value: '', label: '전체' },
@@ -24,10 +39,16 @@ onMounted(() => load(''));
 
 <template>
   <section class="feeds">
-    <header>
-      <h2>외부 채용·자격증·공모전</h2>
-      <p class="muted">공식 오픈API·제휴 피드에서 일 단위로 수집한 정보입니다.</p>
+    <header class="head">
+      <div>
+        <h2>외부 채용·자격증·공모전</h2>
+        <p class="muted">공식 오픈API·제휴 피드에서 일 단위로 수집한 정보입니다.</p>
+      </div>
+      <button class="refresh" :disabled="refreshing || store.loading" @click="refreshNow">
+        {{ refreshing ? '새로고침 중…' : '지금 새로고침' }}
+      </button>
     </header>
+    <p v-if="refreshedMsg" class="refreshed muted">{{ refreshedMsg }}</p>
 
     <nav class="tabs">
       <button v-for="t in TABS" :key="t.value" :class="{ active: active === t.value }" @click="load(t.value)">
@@ -53,6 +74,11 @@ onMounted(() => load(''));
 <style scoped>
 .feeds { max-width: 760px; margin: 0 auto; padding: 1.5rem; }
 .muted { color: #6b7280; font-size: 0.9rem; }
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.refresh { padding: 0.5rem 0.9rem; background: #fff; border: 1px solid #2563eb; color: #2563eb; border-radius: 8px; cursor: pointer; font-size: 0.9rem; white-space: nowrap; }
+.refresh:hover { background: #eff6ff; }
+.refresh:disabled { opacity: 0.55; cursor: not-allowed; }
+.refreshed { margin: 0.5rem 0 0; color: #166534; }
 .tabs { display: flex; gap: 0.5rem; margin: 1rem 0; flex-wrap: wrap; }
 .tabs button { border: 1px solid #d1d5db; background: #fff; border-radius: 999px; padding: 0.35rem 0.9rem; cursor: pointer; }
 .tabs button.active { background: #111827; color: #fff; border-color: #111827; }
