@@ -19,7 +19,8 @@
     "seed:alumni-timelines": "tsx scripts/seed-alumni-timelines.ts",
     "seed:missions": "tsx scripts/seed-job-missions.ts",
     "seed:tags": "tsx scripts/seed-activity-tags.ts",
-    "seed:005": "pnpm seed:alumni && pnpm seed:alumni-timelines && pnpm seed:missions && pnpm seed:demo && pnpm seed:tags",
+    "seed:scenario": "tsx scripts/seed-demo-scenario.ts",
+    "seed:005": "pnpm seed:alumni && pnpm seed:alumni-timelines && pnpm seed:missions && pnpm seed:demo && pnpm seed:tags && pnpm seed:scenario",
     "test": "vitest run",
     "test:watch": "vitest",
     "backup:run": "tsx ops/backup/backup.ts"

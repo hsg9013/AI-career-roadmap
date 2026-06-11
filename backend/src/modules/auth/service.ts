@@ -42,6 +42,9 @@ export interface RegisterStudentInput {
   university: string;
   major: string;
   yearInSchool: number;
+  // 001: 가입 동의란 — 대학 취업지원 정보 제공 범위 + 기업 인재검색 노출 동의.
+  universityConsentScope?: 'none' | 'aggregate_only' | 'individual';
+  matchConsent?: boolean;
 }
 
 export interface RegisterResult {
@@ -66,11 +69,22 @@ export async function registerStudent(input: RegisterStudentInput): Promise<Regi
     );
     const userId = (insertUser as { insertId: number }).insertId;
 
-    await conn.query(
-      `INSERT INTO students (user_id, university, major, year_in_school)
-       VALUES (?, ?, ?, ?)`,
-      [userId, input.university, input.major, input.yearInSchool],
+    const scope = input.universityConsentScope ?? 'aggregate_only';
+    const [insertStudent] = await conn.query(
+      `INSERT INTO students (user_id, university, major, year_in_school, university_consent_scope)
+       VALUES (?, ?, ?, ?, ?)`,
+      [userId, input.university, input.major, input.yearInSchool, scope],
     );
+
+    // 001: 기업 인재검색 노출 동의 시 매칭 동의(opted_in) 기록.
+    if (input.matchConsent) {
+      const studentId = (insertStudent as { insertId: number }).insertId;
+      await conn.query(
+        `INSERT INTO job_match_consents (student_id, opted_in) VALUES (?, 1)
+         ON DUPLICATE KEY UPDATE opted_in = 1`,
+        [studentId],
+      );
+    }
 
     // 메일러는 T060+에서 연결. 현재는 플래그만 false.
     await track(userId, 'signup', { role: 'student', method: 'email' });

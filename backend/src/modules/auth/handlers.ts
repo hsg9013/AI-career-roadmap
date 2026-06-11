@@ -57,6 +57,9 @@ export const registerStudentSchema = z.object({
   university: z.string().min(1).max(120),
   major: z.string().min(1).max(120),
   year_in_school: z.number().int().min(1).max(6),
+  // 001: 가입 동의란(선택) — 미지정 시 기본값(대학 통계 제공/매칭 미동의).
+  university_consent_scope: z.enum(['none', 'aggregate_only', 'individual']).optional(),
+  match_consent: z.boolean().optional(),
 });
 
 export const loginSchema = z.object({
@@ -77,6 +80,8 @@ export async function registerStudentHandler(
       university: body.university,
       major: body.major,
       yearInSchool: body.year_in_school,
+      universityConsentScope: body.university_consent_scope,
+      matchConsent: body.match_consent,
     });
     res.status(201).json({
       user_id: result.userId,
