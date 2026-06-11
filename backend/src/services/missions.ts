@@ -190,6 +190,55 @@ export async function getSubmissionFeedback(userId: number, submissionId: number
   }
 }
 
+// 005 US4: 학생 본인의 제출물 목록(미션·상태·피드백 유무). 상세 피드백은 getSubmissionFeedback.
+export interface MySubmission {
+  submission_id: number;
+  mission_title: string;
+  industry_code: string;
+  job_role_code: string;
+  state: string;
+  review_status: string | null;
+  submitted_at: string;
+  feedback_count: number;
+  has_mentor_feedback: boolean;
+}
+
+export async function listMySubmissions(userId: number): Promise<MySubmission[]> {
+  const [rows] = await getPool().query(
+    `SELECT s.id AS submission_id, m.title AS mission_title,
+            m.industry_code, m.job_role_code, s.state,
+            ra.status AS review_status,
+            DATE_FORMAT(s.submitted_at, '%Y-%m-%dT%H:%i:%sZ') AS submitted_at,
+            COUNT(f.id) AS feedback_count,
+            SUM(CASE WHEN f.kind = 'mentor' THEN 1 ELSE 0 END) AS mentor_cnt
+       FROM submissions s
+       JOIN students st ON st.id = s.student_id
+       JOIN missions m ON m.id = s.mission_id
+       LEFT JOIN review_assignments ra ON ra.submission_id = s.id
+       LEFT JOIN feedbacks f ON f.submission_id = s.id
+      WHERE st.user_id = ?
+      GROUP BY s.id, m.title, m.industry_code, m.job_role_code, s.state, ra.status, s.submitted_at
+      ORDER BY s.submitted_at DESC, s.id DESC
+      LIMIT 50`,
+    [userId],
+  );
+  return (rows as Array<{
+    submission_id: number; mission_title: string; industry_code: string; job_role_code: string;
+    state: string; review_status: string | null; submitted_at: string;
+    feedback_count: number | string; mentor_cnt: number | string | null;
+  }>).map((r) => ({
+    submission_id: r.submission_id,
+    mission_title: r.mission_title,
+    industry_code: r.industry_code,
+    job_role_code: r.job_role_code,
+    state: r.state,
+    review_status: r.review_status,
+    submitted_at: r.submitted_at,
+    feedback_count: Number(r.feedback_count),
+    has_mentor_feedback: Number(r.mentor_cnt ?? 0) > 0,
+  }));
+}
+
 // 005 US4(H4): 현직자(멘토) 심층 코멘트 작성 — feedbacks(kind='mentor')로 저장하고
 // review_assignment 를 completed 로 마감한다. 학생은 기존 getSubmissionFeedback 으로 결합 조회한다.
 export async function addMentorFeedback(

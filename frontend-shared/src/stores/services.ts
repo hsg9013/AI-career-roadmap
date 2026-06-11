@@ -76,8 +76,32 @@ export interface Mission {
   status: string;
 }
 
+// 005 US4: 내 제출물 목록·결합 피드백 타입
+export interface MySubmission {
+  submission_id: number;
+  mission_title: string;
+  industry_code: string;
+  job_role_code: string;
+  state: string;
+  review_status: string | null;
+  submitted_at: string;
+  feedback_count: number;
+  has_mentor_feedback: boolean;
+}
+export interface FeedbackItem {
+  kind: 'ai' | 'mentor';
+  mentor_id: number | null;
+  content: string;
+  created_at: string;
+}
+export interface SubmissionFeedback {
+  submission: { id: number; state: string; review_status: string | null; deadline: string | null };
+  feedbacks: FeedbackItem[];
+}
+
 export const useMissionsStore = defineStore('missions', () => {
   const missions = ref<Mission[]>([]);
+  const mySubmissions = ref<MySubmission[]>([]);
   const loading = ref(false);
   const lastError = ref<string | null>(null);
 
@@ -112,12 +136,21 @@ export const useMissionsStore = defineStore('missions', () => {
     }
   }
 
-  async function feedback(submissionId: number): Promise<unknown> {
-    const { data } = await getApi().get(`/submissions/${submissionId}/feedback`);
+  async function fetchMySubmissions(): Promise<void> {
+    try {
+      const { data } = await getApi().get<MySubmission[]>('/submissions');
+      mySubmissions.value = data;
+    } catch (err) {
+      lastError.value = extractError(err);
+    }
+  }
+
+  async function feedback(submissionId: number): Promise<SubmissionFeedback> {
+    const { data } = await getApi().get<SubmissionFeedback>(`/submissions/${submissionId}/feedback`);
     return data;
   }
 
-  return { missions, loading, lastError, fetchAll, submit, feedback };
+  return { missions, mySubmissions, loading, lastError, fetchAll, submit, fetchMySubmissions, feedback };
 });
 
 export interface Notification {

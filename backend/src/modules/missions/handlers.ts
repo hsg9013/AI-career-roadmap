@@ -4,6 +4,7 @@ import {
   listMissions,
   submitMission,
   getSubmissionFeedback,
+  listMySubmissions,
   addMentorFeedback,
   listMentorAssignments,
 } from '../../services/missions.js';
@@ -42,6 +43,15 @@ export async function submitHandler(req: Request, res: Response, next: NextFunct
     const body = req.body as z.infer<typeof submitBodySchema>;
     const result = await submitMission(userId(req), missionId, body.content, body.storage_key);
     res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// 005 US4: 학생 본인 제출물 목록.
+export async function mySubmissionsHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    res.status(200).json(await listMySubmissions(userId(req)));
   } catch (err) {
     next(err);
   }

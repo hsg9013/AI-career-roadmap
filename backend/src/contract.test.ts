@@ -23,6 +23,7 @@ const ROUTES: ContractRoute[] = [
   { method: 'post', path: '/v1/documents' },
   { method: 'put', path: '/v1/documents/1' },
   { method: 'post', path: '/v1/missions/1/submissions' },
+  { method: 'get', path: '/v1/submissions' },
   { method: 'get', path: '/v1/submissions/1/feedback' },
   { method: 'get', path: '/v1/notifications' },
   { method: 'get', path: '/v1/university/students' },
