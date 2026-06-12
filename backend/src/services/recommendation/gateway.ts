@@ -3,6 +3,7 @@ import { Redis } from 'ioredis';
 import { env } from '../../config/env.js';
 import { logger } from '../../lib/logger.js';
 import { runInference, type FallbackReason } from '../ai/infer.js';
+import { hasClaudeCredentials } from '../ai/claude.js';
 import { stripForbidden } from '../../lib/privacy/index.js';
 
 // T051: 추천 LLM Gateway
@@ -48,13 +49,18 @@ export function anonymize<T extends Record<string, unknown>>(input: T): Record<s
 }
 
 function cacheKey(input: GapInsightInput): string {
+  // 데모 ON/OFF(=AI 실연동 가능 여부)를 캐시 키에 포함한다.
+  // 그렇지 않으면 OFF에서 캐시된 룰 결과가 ON 토글 후에도 TTL(24h) 동안 그대로 반환되어
+  // 갭진단 검증 시 on/off 차이가 드러나지 않는다. 모드를 분리하면 같은 입력이라도
+  // ON='ai:' / OFF='rule:' 별도 캐시에 저장돼 토글 즉시 차이가 관측된다.
+  const mode = hasClaudeCredentials() ? 'ai' : 'rule';
   const canon = JSON.stringify({
     ...anonymize(input as unknown as Record<string, unknown>),
     fulfilled: [...input.fulfilled].sort(),
     missing: [...input.missing].sort(),
     priority_to_improve: [...input.priority_to_improve],
   });
-  return CACHE_PREFIX + createHash('sha256').update(canon).digest('hex');
+  return `${CACHE_PREFIX}${mode}:` + createHash('sha256').update(canon).digest('hex');
 }
 
 function ruleBasedInsight(input: GapInsightInput): GapInsight {
